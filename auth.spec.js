@@ -122,7 +122,7 @@ describe('Mongoose plugin: auth', function () {
     it('should not register a new user with an existing `username`', function (done) {
       User.register('alpha', 'f0ob@r', function (err, user) {
         expect(err).toBeDefined();
-        expect(err.message).toBe('Username already exists [alpha]');
+        expect(err.message).toBe('Username already exists');
         expect(user).toBe(null);
 
         done();

@@ -1,4 +1,3 @@
-var util = require('util');
 var crypto = require('crypto');
 var _ = require('lodash-node/modern');
 
@@ -15,7 +14,7 @@ var defaultOptions = {
   incorrectUsernameError: 'Unknown username',
   missingUsernameError: 'Username was not specified',
   missingPassphraseError: 'Passphrase was not specified',
-  userExistsError: 'Username already exists [%s]',
+  userExistsError: 'Username already exists',
   select: undefined,
   populate: undefined
 };
@@ -96,7 +95,7 @@ module.exports = function authPlugin(schema, options) {
 
     return user.save(function saveUser(err, user) {
       if (err) {
-        return cb(err.code !== 11000 ? err : new options.Error(util.format(options.userExistsError, username)), null);
+        return cb(err.code !== 11000 ? err : new options.Error(options.userExistsError), null);
       }
 
       return cb(null, user);
