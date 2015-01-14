@@ -86,16 +86,29 @@ module.exports = function authPlugin(schema, options) {
     var Model = this;
     var user = new Model();
 
-    if (!username) {
-      return cb(new options.Error(options.missingUsernameError), null);
+    // Arity check
+    if (arguments.length === 2) {
+      // User.register(passphrase, cb)
+      cb = passphrase;
+      passphrase = username;
+    }
+    else {
+      user.set(options.usernamePath, username);
     }
 
-    user.set(options.usernamePath, username);
     user.set(options.hashPath, passphrase);
 
     return user.save(function saveUser(err, user) {
       if (err) {
-        return cb(err.code !== 11000 ? err : new options.Error(options.userExistsError), null);
+        if (err.name === 'MongoError' && err.code === 11000) {
+          return cb(new options.Error(options.userExistsError), null);
+        }
+        else if (err.name === 'ValidationError' && err.errors[options.usernamePath] !== undefined && err.errors[options.usernamePath].type === 'required') {
+          return cb(new options.Error(options.missingUsernameError), null);
+        }
+        else {
+          return cb(err, null);
+        }
       }
 
       return cb(null, user);
