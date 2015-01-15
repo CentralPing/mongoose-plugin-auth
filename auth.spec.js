@@ -129,11 +129,12 @@ describe('Mongoose plugin: auth', function () {
       });
     });
 
-    it('should register a new user with a different `username`', function (done) {
-      User.register('bravo', 'FOOBAR', function (err, user) {
+    it('should register a new user with extra fields populated', function (done) {
+      User.register('bravo', 'FOOBAR', {name: 'Bravo'}, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
         expect(user.username).toBe('bravo');
+        expect(user.name).toBe('Bravo');
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
 
@@ -274,6 +275,7 @@ function model(name, schema) {
 
 function UserSchema() {
   return Schema({
+    name: String,
     displayName: String
   });
 }

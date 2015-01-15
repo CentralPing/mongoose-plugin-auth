@@ -82,18 +82,30 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 
-  schema.static('register', function register(username, passphrase, cb) {
+  schema.static('register', function register(username, passphrase, extra, cb) {
     var Model = this;
     var user = new Model();
 
     // Arity check
     if (arguments.length === 2) {
       // User.register(passphrase, cb)
+      // Used if username field is autopopulated (`_id`)
       cb = passphrase;
       passphrase = username;
+      username = undefined;
     }
-    else {
+    else if (arguments.length === 3) {
+      // User.register(username, passphrase, cb)
+      cb = extra;
+      extra = undefined;
+    }
+
+    if (username !== undefined) {
       user.set(options.usernamePath, username);
+    }
+
+    if (extra !== undefined) {
+      user.set(extra);
     }
 
     user.set(options.hashPath, passphrase);
