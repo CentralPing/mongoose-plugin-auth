@@ -1,26 +1,24 @@
 var crypto = require('crypto');
 var _ = require('lodash-node/modern');
 
-var defaultOptions = {
-  usernamePath: 'username',
-  saltPath: 'salt',
-  hashPath: 'hash',
-  saltlen: 32,
-  iterations: 25000,
-  keylen: 512,
-  encoding: 'hex',
-  Error: Error,
-  incorrectPassphraseError: 'Incorrect passphrase',
-  incorrectUsernameError: 'Unknown username',
-  missingUsernameError: 'Username was not specified',
-  missingPassphraseError: 'Passphrase was not specified',
-  userExistsError: 'Username already exists',
-  select: undefined,
-  populate: undefined
-};
-
 module.exports = function authPlugin(schema, options) {
-  options = _.merge({}, defaultOptions, options || {});
+  options = _.merge({
+    usernamePath: 'username',
+    saltPath: 'salt',
+    hashPath: 'hash',
+    saltlen: 32,
+    iterations: 25000,
+    keylen: 512,
+    encoding: 'hex',
+    Error: Error,
+    incorrectPassphraseError: 'Incorrect passphrase',
+    incorrectUsernameError: 'Unknown username',
+    missingUsernameError: 'Username was not specified',
+    missingPassphraseError: 'Passphrase was not specified',
+    userExistsError: 'Username already exists',
+    select: undefined,
+    populate: undefined
+  }, options || {});
 
   if (!schema.path(options.usernamePath)) {
     schema.path(options.usernamePath, {
@@ -96,8 +94,17 @@ module.exports = function authPlugin(schema, options) {
     }
     else if (arguments.length === 3) {
       // User.register(username, passphrase, cb)
+      // User.register(passphrase, extra, cb)
       cb = extra;
-      extra = undefined;
+
+      if (_.isPlainObject(passphrase)) {
+        extra = passphrase;
+        passphrase = username;
+        username = undefined;
+      }
+      else {
+        extra = undefined;
+      }
     }
 
     if (username !== undefined) {

@@ -218,15 +218,20 @@ describe('Mongoose plugin: auth', function () {
 
     beforeEach(function () {
       schema = UserSchema();
-    });
-
-    it('should register a new user', function (done) {
       schema.plugin(auth, {
         usernamePath: '_id'
       });
 
       User = model('User', schema);
+    });
 
+    it('should drop DB', function (done) {
+      connection.db.dropDatabase(function (err, result) {
+        done();
+      });
+    });
+
+    it('should register a new user', function (done) {
       User.register('f0ob@r', function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
@@ -235,6 +240,19 @@ describe('Mongoose plugin: auth', function () {
         expect(user.hash).toEqual(jasmine.any(String));
 
         userObj = user;
+
+        done();
+      });
+    });
+
+    it('should register a new user with extra fields populated', function (done) {
+      User.register('FOOBAR', {name: 'Charlie'}, function (err, user) {
+        expect(err).toBe(null);
+        expect(user).toEqual(jasmine.any(Object));
+        expect(user.id).toBeDefined();
+        expect(user.name).toBe('Charlie');
+        expect(user.salt).toEqual(jasmine.any(String));
+        expect(user.hash).toEqual(jasmine.any(String));
 
         done();
       });

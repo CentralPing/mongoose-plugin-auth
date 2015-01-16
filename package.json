@@ -1,6 +1,6 @@
 {
   "name": "mongoose-plugin-auth",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Mongoose.js plugin to add authorization methods to models.",
   "main": "auth.js",
   "dependencies": {
