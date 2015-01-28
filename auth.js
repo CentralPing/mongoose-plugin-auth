@@ -25,9 +25,16 @@ module.exports = function authPlugin(schema, options) {
       type: String,
       required: true,
       unique: true,
+      sparse: true,
       select: false,
       trim: true,
       lowercase: true
+    });
+  }
+  else {
+    schema.path(options.usernamePath).index({
+      unique: true,
+      sparse: true
     });
   }
 
