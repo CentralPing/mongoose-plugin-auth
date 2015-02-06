@@ -34,10 +34,11 @@ describe('Mongoose plugin: auth', function () {
 
     expect(schema.path('username')).toBeDefined();
     expect(schema.path('salt')).toBeDefined();
-    expect(schema.path('hash')).toBeDefined();
+    expect(schema.path('passphrase')).toBeDefined();
 
-    expect(Object.keys(schema.statics).length).toBe(2);
+    expect(Object.keys(schema.statics).length).toBe(3);
     expect(schema.statics.authenticate).toBeDefined();
+    expect(schema.statics.setPassphrase).toBeDefined();
     expect(schema.statics.register).toBeDefined();
 
     User = model('User', schema);
@@ -47,6 +48,7 @@ describe('Mongoose plugin: auth', function () {
     user = new User();
 
     expect(user.authenticate).toEqual(jasmine.any(Function));
+    expect(user.setPassphrase).toEqual(jasmine.any(Function));
   });
 
   it('should append schema with plugin options', function () {
@@ -57,7 +59,7 @@ describe('Mongoose plugin: auth', function () {
     schema.plugin(auth, {
       usernamePath: 'u',
       saltPath: 's',
-      hashPath: 'h'
+      passphrasePath: 'h'
     });
 
     expect(schema.path('u')).toBeDefined();
@@ -67,7 +69,7 @@ describe('Mongoose plugin: auth', function () {
 
   describe('with user registration and authentication', function () {
     var User;
-    var userIds = [];
+    var users = [];
     var schema;
 
     beforeEach(function () {
@@ -119,9 +121,9 @@ describe('Mongoose plugin: auth', function () {
         expect(user).toEqual(jasmine.any(Object));
         expect(user.username).toBe('alpha');
         expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.passphrase).toEqual(jasmine.any(String));
 
-        userIds.push(user.id);
+        users.push(user);
 
         done();
       });
@@ -144,9 +146,9 @@ describe('Mongoose plugin: auth', function () {
         expect(user.username).toBe('bravo');
         expect(user.name).toBe('Bravo');
         expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.passphrase).toEqual(jasmine.any(String));
 
-        userIds.push(user.id);
+        users.push(user);
 
         done();
       });
@@ -163,7 +165,7 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should not authenticate a user with an incorrect passphrase', function (done) {
-      User.authenticate('alpha', 'F0OB@R', function (err, user) {
+      User.authenticate(users[0].username, 'F0OB@R', function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Incorrect passphrase');
         expect(user).toBe(null);
@@ -173,47 +175,57 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should authenticate a user with a correct passphrase', function (done) {
-      User.authenticate('alpha', 'f0ob@r', function (err, user) {
+      User.authenticate(users[0].username, 'f0ob@r', function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.id).toBe(userIds[0]);
-        expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.id).toBe(users[0].id);
+        expect(user.salt).toBe(users[0].salt);
+        expect(user.passphrase).toBe(users[0].passphrase);
 
         done();
       });
     });
 
     it('should update the passphrase and authenticate', function (done) {
-      var salt;
-      var hash;
-
-      User.authenticate('bravo', 'FOOBAR', function (err, user) {
+      User.setPassphrase(users[1].username, 'FOOBAR', 'B@rf0o', function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.id).toBe(userIds[1]);
-        expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.id).toBe(users[1].id);
+        expect(user.salt).not.toBe(users[1].salt);
+        expect(user.passphrase).not.toBe(users[1].passphrase);
 
-        salt = user.salt;
-        hash = user.hash;
+        users[1] = user;
 
-        user.set('hash', 'B@rf0o');
-
-        user.save(function (err, user) {
+        user.authenticate('B@rf0o', function (err, user) {
           expect(err).toBe(null);
           expect(user).toEqual(jasmine.any(Object));
-          expect(user.id).toBe(userIds[1]);
+          expect(user.id).toBe(users[1].id);
+          expect(user.salt).toBe(users[1].salt);
+          expect(user.passphrase).toBe(users[1].passphrase);
+
+          done();
+        });
+      });
+    });
+
+    it('should authenticate and update the passphrase', function (done) {
+      User.authenticate(users[0].username, 'f0ob@r', function (err, user) {
+        expect(err).toBe(null);
+        expect(user).toEqual(jasmine.any(Object));
+        expect(user.id).toBe(users[0].id);
+        expect(user.salt).toBe(users[0].salt);
+        expect(user.passphrase).toBe(users[0].passphrase);
+
+        var salt = user.salt;
+        var passphrase = user.passphrase;
+
+        user.setPassphrase('FOOBAR', function (err, user) {
+          expect(err).toBe(null);
+          expect(user).toEqual(jasmine.any(Object));
           expect(user.salt).not.toBe(salt);
-          expect(user.hash).not.toBe(hash);
+          expect(user.passphrase).not.toBe(passphrase);
 
-          user.authenticate('B@rf0o', function (err, user) {
-            expect(err).toBe(null);
-            expect(user).toEqual(jasmine.any(Object));
-            expect(user.id).toBe(userIds[1]);
-
-            done();
-          });
+          done();
         });
       });
     });
@@ -245,7 +257,7 @@ describe('Mongoose plugin: auth', function () {
         expect(user).toEqual(jasmine.any(Object));
         expect(user.id).toBeDefined();
         expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.passphrase).toEqual(jasmine.any(String));
 
         userObj = user;
 
@@ -260,7 +272,7 @@ describe('Mongoose plugin: auth', function () {
         expect(user.id).toBeDefined();
         expect(user.name).toBe('Charlie');
         expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.passphrase).toEqual(jasmine.any(String));
 
         done();
       });
@@ -272,7 +284,7 @@ describe('Mongoose plugin: auth', function () {
         expect(user).toEqual(jasmine.any(Object));
         expect(user.id).toBe(userObj.id);
         expect(user.salt).toEqual(jasmine.any(String));
-        expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.passphrase).toEqual(jasmine.any(String));
 
         done();
       });

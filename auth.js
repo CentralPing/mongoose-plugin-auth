@@ -5,7 +5,7 @@ module.exports = function authPlugin(schema, options) {
   options = _.merge({
     usernamePath: 'username',
     saltPath: 'salt',
-    hashPath: 'hash',
+    passphrasePath: 'passphrase',
     saltlen: 32,
     iterations: 25000,
     keylen: 512,
@@ -46,8 +46,8 @@ module.exports = function authPlugin(schema, options) {
     });
   }
 
-  if (!schema.path(options.hashPath)) {
-    schema.path(options.hashPath, {
+  if (!schema.path(options.passphrasePath)) {
+    schema.path(options.passphrasePath, {
       type: String,
       required: true,
       select: false
@@ -56,12 +56,12 @@ module.exports = function authPlugin(schema, options) {
 
   schema.pre('validate', true, function setPassphrase(next, done) {
     var user = this;
-    var passphrase = user.get(options.hashPath);
+    var passphrase = user.get(options.passphrasePath);
 
     // Run in parallel
     next();
 
-    if (!user.isNew && !user.isModified(options.hashPath)) {
+    if (!user.isNew && !user.isModified(options.passphrasePath)) {
       return done();
     }
 
@@ -69,17 +69,15 @@ module.exports = function authPlugin(schema, options) {
       return done(new options.Error(options.missingPassphraseError));
     }
 
-    crypto.randomBytes(options.saltlen, function createSalt(err, buf) {
-      var salt;
-
+    return crypto.randomBytes(options.saltlen, function createSalt(err, buf) {
       if (err) { return done(err); }
 
-      salt = buf.toString(options.encoding);
+      var salt = buf.toString(options.encoding);
 
-      pbkdf2(passphrase, salt, options, function createHash(err, hash) {
+      return pbkdf2(passphrase, salt, options, function createHash(err, hash) {
         if (err) { return done(err); }
 
-        user.set(options.hashPath, hash);
+        user.set(options.passphrasePath, hash);
         user.set(options.saltPath, salt);
 
         return done();
@@ -87,22 +85,22 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 
-  schema.static('register', function register(username, passphrase, extra, cb) {
+  schema.static('register', function register(username, passphrase, extra, done) {
     var Model = this;
     var user = new Model();
 
     // Arity check
     if (arguments.length === 2) {
-      // User.register(passphrase, cb)
+      // User.register(passphrase, done)
       // Used if username field is autopopulated (`_id`)
-      cb = passphrase;
+      done = passphrase;
       passphrase = username;
       username = undefined;
     }
     else if (arguments.length === 3) {
-      // User.register(username, passphrase, cb)
-      // User.register(passphrase, extra, cb)
-      cb = extra;
+      // User.register(username, passphrase, done)
+      // User.register(passphrase, extra, done)
+      done = extra;
 
       if (_.isPlainObject(passphrase)) {
         extra = passphrase;
@@ -122,56 +120,78 @@ module.exports = function authPlugin(schema, options) {
       user.set(extra);
     }
 
-    user.set(options.hashPath, passphrase);
+    user.set(options.passphrasePath, passphrase);
 
     return user.save(function saveUser(err, user) {
       if (err) {
         if (err.name === 'MongoError' && err.code === 11000) {
-          return cb(new options.Error(options.userExistsError), null);
+          return done(new options.Error(options.userExistsError), null);
         }
         else if (err.name === 'ValidationError' && err.errors[options.usernamePath] !== undefined && err.errors[options.usernamePath].type === 'required') {
-          return cb(new options.Error(options.missingUsernameError), null);
+          return done(new options.Error(options.missingUsernameError), null);
         }
         else {
-          return cb(err, null);
+          return done(err, null);
         }
       }
 
-      return cb(null, user);
+      return done(null, user);
     });
   });
 
-  schema.static('authenticate', function authenticate(username, passphrase, cb) {
+  schema.static('setPassphrase', function register(username, passphrase, newPassphrase, done) {
+    var Model = this;
+
+    return Model.authenticate(username, passphrase, function (err, user) {
+      if (err) { return done(err, null); }
+
+      return user.setPassphrase(newPassphrase, done);
+    });
+  });
+
+  schema.method('setPassphrase', function register(passphrase, done) {
+    var user = this;
+
+    user.set(options.passphrasePath, passphrase);
+
+    return user.save(function saveUser(err, user) {
+      if (err) { return done(err, null); }
+
+      return done(null, user);
+    });
+  });
+
+  schema.static('authenticate', function authenticate(username, passphrase, done) {
     return findByUsername(this, username, options, function (err, user) {
-      if (err) { return cb(err, null); }
+      if (err) { return done(err, null); }
 
       if (!user) {
-        return cb(new options.Error(options.incorrectUsernameError), null);
+        return done(new options.Error(options.incorrectUsernameError), null);
       }
 
-      return user.authenticate(passphrase, cb);
+      return user.authenticate(passphrase, done);
     });
   });
 
-  schema.method('authenticate', function authenticate(passphrase, cb) {
+  schema.method('authenticate', function authenticate(passphrase, done) {
     var user = this;
 
     return pbkdf2(passphrase, user.get(options.saltPath), options, function checkHash(err, hash) {
-      if (err) { return cb(err, null); }
+      if (err) { return done(err, null); }
 
-      if (hash !== user.get(options.hashPath)) {
-        return cb(new options.Error(options.incorrectPassphraseError), null);
+      if (hash !== user.get(options.passphrasePath)) {
+        return done(new options.Error(options.incorrectPassphraseError), null);
       }
 
-      return cb(null, user);
+      return done(null, user);
     });
   });
 };
 
-function findByUsername(Model, username, options, cb) {
+function findByUsername(Model, username, options, done) {
   var query = Model.findOne().where(options.usernamePath, username);
 
-  query.select([options.hashPath, options.saltPath].join(' '));
+  query.select([options.passphrasePath, options.saltPath].join(' '));
 
   if (options.select) {
     query.select(options.select);
@@ -181,13 +201,13 @@ function findByUsername(Model, username, options, cb) {
     query.populate(options.populate);
   }
 
-  return cb ? query.exec(cb) : query;
+  return done ? query.exec(done) : query;
 }
 
-function pbkdf2(passphrase, salt, options, cb) {
+function pbkdf2(passphrase, salt, options, done) {
   return crypto.pbkdf2(passphrase, salt, options.iterations, options.keylen, function createRawHash(err, hashRaw) {
-    if (err) { return cb(err, null); }
+    if (err) { return done(err, null); }
 
-    return cb(err, new Buffer(hashRaw, 'binary').toString(options.encoding));
+    return done(err, new Buffer(hashRaw, 'binary').toString(options.encoding));
   });
 }
