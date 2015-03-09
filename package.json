@@ -1,12 +1,13 @@
 {
   "name": "mongoose-plugin-auth",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Mongoose.js plugin to add authorization methods to models.",
   "main": "auth.js",
   "dependencies": {
     "lodash-node": "^3.0.0"
   },
   "devDependencies": {
+    "faker": "^2.1.2",
     "gulp": "^3.8.10",
     "gulp-debug": "^2.0.0",
     "gulp-if": "^1.2.5",

@@ -27,8 +27,7 @@ module.exports = function authPlugin(schema, options) {
       unique: true,
       sparse: true,
       select: false,
-      trim: true,
-      lowercase: true
+      trim: true
     });
   }
   else {
@@ -124,8 +123,8 @@ module.exports = function authPlugin(schema, options) {
 
     user.set(options.hashPath, passphrase);
 
-    return user.save(function saveUser(err, user) {
-      if (err) {
+    return user.save(function saveUser(err, user, count) {
+      if (err || count === 0) {
         if (err.name === 'MongoError' && err.code === 11000) {
           return cb(new options.Error(options.userExistsError), null);
         }
@@ -142,11 +141,15 @@ module.exports = function authPlugin(schema, options) {
   });
 
   schema.static('authenticate', function authenticate(username, passphrase, cb) {
+    if (username === undefined || username === null) {
+      return cb(new options.Error(options.missingUsernameError), null);
+    }
+
     return findByUsername(this, username, options, function (err, user) {
       if (err) { return cb(err, null); }
 
-      if (!user) {
-        return cb(new options.Error(options.incorrectUsernameError), null);
+      if (user === null) {
+        return cb(new options.Error(options.incorrectUsernameError), user);
       }
 
       return user.authenticate(passphrase, cb);
@@ -155,6 +158,10 @@ module.exports = function authPlugin(schema, options) {
 
   schema.method('authenticate', function authenticate(passphrase, cb) {
     var user = this;
+
+    if (passphrase === undefined || passphrase === null) {
+      return cb(new options.Error(options.missingPassphraseError), null);
+    }
 
     return pbkdf2(passphrase, user.get(options.saltPath), options, function checkHash(err, hash) {
       if (err) { return cb(err, null); }

@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var faker = require('faker');
 var auth = require('./auth');
 var Schema = mongoose.Schema;
 var connection;
@@ -9,22 +10,22 @@ var connection;
 // This removes the mongoose entirely from node's cache
 delete require.cache.mongoose;
 
-describe('Mongoose plugin: auth', function () {
-  beforeAll(function (done) {
-    connection = mongoose.createConnection('mongodb://localhost/unit_test');
-    connection.once('connected', function () {
+beforeAll(function (done) {
+  connection = mongoose.createConnection('mongodb://localhost/unit_test');
+  connection.once('connected', function () {
+    done();
+  });
+});
+
+afterAll(function (done) {
+  connection.db.dropDatabase(function (err, result) {
+    connection.close(function () {
       done();
     });
   });
+});
 
-  afterAll(function (done) {
-    connection.db.dropDatabase(function (err, result) {
-      connection.close(function () {
-        done();
-      });
-    });
-  });
-
+describe('Mongoose plugin: auth', function () {
   it('should append schema', function () {
     var schema = UserSchema();
     var User;
@@ -67,23 +68,28 @@ describe('Mongoose plugin: auth', function () {
 
   describe('with user registration and authentication', function () {
     var User;
-    var userIds = [];
-    var schema;
+    var users;
 
-    beforeEach(function () {
-      schema = UserSchema();
+    beforeAll(function (done) {
+      var schema = UserSchema();
       schema.plugin(auth);
 
-      User = model('User', schema);
-    });
+      users = Array(3).join('.').split('.').map(function () {
+        return {
+          name: faker.name.findName(),
+          username: faker.internet.userName(),
+          password: faker.internet.password()
+        };
+      });
 
-    it('should clear all models from DB', function (done) {
+      User = model('User', schema);
+
       User.collection.remove(function () {
         done();
       });
     });
 
-    it('should return error without either `username` or `passphrase` specified', function (done) {
+    it('should not register a new user without either `username` or `passphrase` specified', function (done) {
       User.register(undefined, undefined, function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Passphrase was not specified');
@@ -93,8 +99,8 @@ describe('Mongoose plugin: auth', function () {
       });
     });
 
-    it('should return error without `username` specified', function (done) {
-      User.register(undefined, 'f0ob@r', function (err, user) {
+    it('should not register a new user without `username` specified', function (done) {
+      User.register(undefined, users[0].password, function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Username was not specified');
         expect(user).toBe(null);
@@ -104,7 +110,7 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should return error without `passphrase` specified', function (done) {
-      User.register('alpha', undefined, function (err, user) {
+      User.register(users[0].username, undefined, function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Passphrase was not specified');
         expect(user).toBe(null);
@@ -114,21 +120,22 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should register a new user', function (done) {
-      User.register('alpha', 'f0ob@r', function (err, user) {
+      User.register(users[0].username, users[0].password, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.username).toBe('alpha');
+        expect(user.username).toBe(users[0].username);
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
+        expect(user.hash).not.toBe(users[0].password);
 
-        userIds.push(user.id);
+        users[0].id = user.id;
 
         done();
       });
     });
 
     it('should not register a new user with an existing `username`', function (done) {
-      User.register('alpha', 'f0ob@r', function (err, user) {
+      User.register(users[0].username, users[0].password, function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Username already exists');
         expect(user).toBe(null);
@@ -138,22 +145,32 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should register a new user with extra fields populated', function (done) {
-      User.register('bravo', 'FOOBAR', {name: 'Bravo'}, function (err, user) {
+      User.register(users[1].username, users[1].password, {name: users[1].name}, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.username).toBe('bravo');
-        expect(user.name).toBe('Bravo');
+        expect(user.username).toBe(users[1].username);
+        expect(user.name).toBe(users[1].name);
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
 
-        userIds.push(user.id);
+        users[1].id = user.id;
+
+        done();
+      });
+    });
+
+    it('should not authenticate an unspecified user', function (done) {
+      User.authenticate(undefined, undefined, function (err, user) {
+        expect(err).toBeDefined();
+        expect(err.message).toBe('Username was not specified');
+        expect(user).toBe(null);
 
         done();
       });
     });
 
     it('should not authenticate an unknown user', function (done) {
-      User.authenticate('charlie', 'FOOBAR', function (err, user) {
+      User.authenticate(users[2].username, undefined, function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Unknown username');
         expect(user).toBe(null);
@@ -162,8 +179,18 @@ describe('Mongoose plugin: auth', function () {
       });
     });
 
+    it('should not authenticate an unspecified passphrase', function (done) {
+      User.authenticate(users[0].username, undefined, function (err, user) {
+        expect(err).toBeDefined();
+        expect(err.message).toBe('Passphrase was not specified');
+        expect(user).toBe(null);
+
+        done();
+      });
+    });
+
     it('should not authenticate a user with an incorrect passphrase', function (done) {
-      User.authenticate('alpha', 'F0OB@R', function (err, user) {
+      User.authenticate(users[0].username, faker.internet.password(), function (err, user) {
         expect(err).toBeDefined();
         expect(err.message).toBe('Incorrect passphrase');
         expect(user).toBe(null);
@@ -172,11 +199,11 @@ describe('Mongoose plugin: auth', function () {
       });
     });
 
-    it('should authenticate a user with a correct passphrase', function (done) {
-      User.authenticate('alpha', 'f0ob@r', function (err, user) {
+    it('should authenticate a user with correct username/passphrase', function (done) {
+      User.authenticate(users[0].username, users[0].password, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.id).toBe(userIds[0]);
+        expect(user.id).toBe(users[0].id);
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
 
@@ -188,29 +215,31 @@ describe('Mongoose plugin: auth', function () {
       var salt;
       var hash;
 
-      User.authenticate('bravo', 'FOOBAR', function (err, user) {
+      User.authenticate(users[1].username, users[1].password, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.id).toBe(userIds[1]);
+        expect(user.id).toBe(users[1].id);
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
 
         salt = user.salt;
         hash = user.hash;
 
-        user.set('hash', 'B@rf0o');
+        users[1].password = faker.internet.password();
+
+        user.set('hash', users[1].password);
 
         user.save(function (err, user) {
           expect(err).toBe(null);
           expect(user).toEqual(jasmine.any(Object));
-          expect(user.id).toBe(userIds[1]);
+          expect(user.id).toBe(users[1].id);
           expect(user.salt).not.toBe(salt);
           expect(user.hash).not.toBe(hash);
 
-          user.authenticate('B@rf0o', function (err, user) {
+          user.authenticate(users[1].password, function (err, user) {
             expect(err).toBe(null);
             expect(user).toEqual(jasmine.any(Object));
-            expect(user.id).toBe(userIds[1]);
+            expect(user.id).toBe(users[1].id);
 
             done();
           });
@@ -220,57 +249,71 @@ describe('Mongoose plugin: auth', function () {
   });
 
   describe('with user registration with usernamePath set to `_id`', function () {
-    var schema;
     var User;
-    var userObj;
+    var users = Array(2).join('.').split('.').map(function () {
+      return {
+        name: faker.name.findName(),
+        password: faker.internet.password()
+      };
+    });
 
-    beforeEach(function () {
-      schema = UserSchema();
+    beforeAll(function (done) {
+      var schema = UserSchema();
       schema.plugin(auth, {
         usernamePath: '_id'
       });
 
       User = model('User', schema);
+
+      User.collection.remove(function () {
+        done();
+      });
     });
 
-    it('should drop DB', function (done) {
-      connection.db.dropDatabase(function (err, result) {
+    it('should not register a new user without `passphrase` specified', function (done) {
+      User.register(undefined, function (err, user) {
+        expect(err).toBeDefined();
+        expect(err.message).toBe('Passphrase was not specified');
+        expect(user).toBe(null);
+
         done();
       });
     });
 
     it('should register a new user', function (done) {
-      User.register('f0ob@r', function (err, user) {
+      User.register(users[0].password, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
         expect(user.id).toBeDefined();
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
 
-        userObj = user;
+        users[0].id = user.id;
 
         done();
       });
     });
 
     it('should register a new user with extra fields populated', function (done) {
-      User.register('FOOBAR', {name: 'Charlie'}, function (err, user) {
+      User.register(users[1].password, {name: users[1].name}, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
         expect(user.id).toBeDefined();
-        expect(user.name).toBe('Charlie');
+        expect(user.name).toBe(users[1].name);
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
+
+        users[1].id = user.id;
 
         done();
       });
     });
 
     it('should authenticate a user', function (done) {
-      User.authenticate(userObj.id, 'f0ob@r', function (err, user) {
+      User.authenticate(users[0].id, users[0].password, function (err, user) {
         expect(err).toBe(null);
         expect(user).toEqual(jasmine.any(Object));
-        expect(user.id).toBe(userObj.id);
+        expect(user.id).toBe(users[0].id);
         expect(user.salt).toEqual(jasmine.any(String));
         expect(user.hash).toEqual(jasmine.any(String));
 
