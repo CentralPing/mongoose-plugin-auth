@@ -3,81 +3,87 @@ var _ = require('lodash-node/modern');
 
 module.exports = function authPlugin(schema, options) {
   options = _.merge({
-    usernamePath: 'username',
-    saltPath: 'salt',
-    passphrasePath: 'passphrase',
-    saltlen: 32,
-    iterations: 25000,
-    keylen: 512,
-    encoding: 'hex',
+    username: {
+      path: 'username',
+      options: {
+        type: String,
+        required: true,
+        unique: true,
+        sparse: true,
+        select: false,
+        trim: true
+      },
+      missingError: 'Username was not specified',
+      incorrectError: 'Unknown username'
+    },
+    salt: {
+      path: 'salt',
+      options: {
+        type: String,
+        required: true,
+        select: false
+      },
+      len: 32
+    },
+    passphrase: {
+      path: 'passphrase',
+      options: {
+        type: String,
+        required: true,
+        select: false
+      },
+      missingError: 'Passphrase was not specified',
+      incorrectError: 'Incorrect passphrase'
+    },
+    hash: {
+      iterations: 25000,
+      keylen: 512,
+      encoding: 'hex'
+    },
     Error: Error,
-    incorrectPassphraseError: 'Incorrect passphrase',
-    incorrectUsernameError: 'Unknown username',
-    missingUsernameError: 'Username was not specified',
-    missingPassphraseError: 'Passphrase was not specified',
-    userExistsError: 'Username already exists',
     select: undefined,
     populate: undefined
   }, options || {});
 
-  if (!schema.path(options.usernamePath)) {
-    schema.path(options.usernamePath, {
-      type: String,
-      required: true,
-      unique: true,
-      sparse: true,
-      select: false,
-      trim: true
-    });
-  }
-  else {
-    schema.path(options.usernamePath).index({
-      unique: true,
-      sparse: true
-    });
+  if (!schema.path(options.username.path)) {
+    schema.path(options.username.path, options.username.options);
   }
 
-  if (!schema.path(options.saltPath)) {
-    schema.path(options.saltPath, {
-      type: String,
-      required: true,
-      select: false
-    });
+  if (!schema.path(options.salt.path)) {
+    schema.path(options.salt.path, options.salt.options);
   }
 
-  if (!schema.path(options.passphrasePath)) {
-    schema.path(options.passphrasePath, {
-      type: String,
-      required: true,
-      select: false
-    });
+  if (!schema.path(options.passphrase.path)) {
+    schema.path(options.passphrase.path, options.passphrase.options);
   }
 
   schema.pre('validate', true, function setPassphrase(next, done) {
     var user = this;
-    var passphrase = user.get(options.passphrasePath);
+    var passphrase;
 
     // Run in parallel
     next();
 
-    if (!user.isNew && !user.isModified(options.passphrasePath)) {
+    if (!user.isNew && !user.isModified(options.passphrase.path)) {
       return done();
     }
 
+    passphrase = user.get(options.passphrase.path);
+
     if (passphrase === undefined) {
-      return done(new options.Error(options.missingPassphraseError));
+      return done();
     }
 
-    return crypto.randomBytes(options.saltlen, function createSalt(err, buf) {
+    return crypto.randomBytes(options.salt.len, function createSalt(err, buf) {
       if (err) { return done(err); }
 
-      var salt = buf.toString(options.encoding);
+      var salt = buf.toString(options.hash.encoding);
 
       return pbkdf2(passphrase, salt, options, function createHash(err, hash) {
         if (err) { return done(err); }
 
-        user.set(options.passphrasePath, hash);
-        user.set(options.saltPath, salt);
+        user.set(options.passphrase.path, hash);
+        user.set(options.salt.path, salt);
 
         return done();
       });
@@ -112,37 +118,23 @@ module.exports = function authPlugin(schema, options) {
     }
 
     if (username !== undefined) {
-      user.set(options.usernamePath, username);
+      user.set(options.username.path, username);
     }
 
     if (extra !== undefined) {
       user.set(extra);
     }
 
-    user.set(options.passphrasePath, passphrase);
+    user.set(options.passphrase.path, passphrase);
 
-    return user.save(function saveUser(err, user, count) {
-      if (err || count === 0) {
-        if (err.name === 'MongoError' && err.code === 11000) {
-          return done(new options.Error(options.userExistsError), null);
-        }
-        else if (err.name === 'ValidationError' && err.errors[options.usernamePath] !== undefined && err.errors[options.usernamePath].type === 'required') {
-          return done(new options.Error(options.missingUsernameError), null);
-        }
-        else {
-          return done(err, null);
-        }
-      }
-
-      return done(null, user);
-    });
+    return user.save(done);
   });
 
   schema.static('setPassphrase', function register(username, passphrase, newPassphrase, done) {
     var Model = this;
 
     return Model.authenticate(username, passphrase, function (err, user) {
-      if (err) { return done(err, null); }
+      if (err) { return done(err, user); }
 
       return user.setPassphrase(newPassphrase, done);
     });
@@ -151,25 +143,21 @@ module.exports = function authPlugin(schema, options) {
   schema.method('setPassphrase', function register(passphrase, done) {
     var user = this;
 
-    user.set(options.passphrasePath, passphrase);
+    user.set(options.passphrase.path, passphrase);
 
-    return user.save(function saveUser(err, user) {
-      if (err) { return done(err, null); }
-
-      return done(null, user);
-    });
+    return user.save(done);
   });
 
   schema.static('authenticate', function authenticate(username, passphrase, done) {
     if (username === undefined || username === null) {
-      return done(new options.Error(options.missingUsernameError), null);
+      return done(new options.Error(options.username.missingError));
     }
 
     return findByUsername(this, username, options, function (err, user) {
-      if (err) { return done(err, null); }
+      if (err) { return done(err, user); }
 
       if (user === null) {
-        return done(new options.Error(options.incorrectUsernameError), user);
+        return done(new options.Error(options.username.incorrectError));
       }
 
       return user.authenticate(passphrase, done);
@@ -180,25 +168,25 @@ module.exports = function authPlugin(schema, options) {
     var user = this;
 
     if (passphrase === undefined || passphrase === null) {
-      return done(new options.Error(options.missingPassphraseError), null);
+      return done(new options.Error(options.passphrase.missingError));
     }
 
-    return pbkdf2(passphrase, user.get(options.saltPath), options, function checkHash(err, hash) {
-      if (err) { return done(err, null); }
+    return pbkdf2(passphrase, user.get(options.salt.path), options, function checkHash(err, hash) {
+      if (err) { return done(err); }
 
-      if (hash !== user.get(options.passphrasePath)) {
-        return done(new options.Error(options.incorrectPassphraseError), null);
+      if (hash !== user.get(options.passphrase.path)) {
+        return done(new options.Error(options.passphrase.incorrectError));
       }
 
-      return done(null, user);
+      return done(err, user);
     });
   });
 };
 
 function findByUsername(Model, username, options, done) {
-  var query = Model.findOne().where(options.usernamePath, username);
+  var query = Model.findOne().where(options.username.path, username);
 
-  query.select([options.passphrasePath, options.saltPath].join(' '));
+  query.select([options.passphrase.path, options.salt.path].join(' '));
 
   if (options.select) {
     query.select(options.select);
@@ -212,9 +200,10 @@ function findByUsername(Model, username, options, done) {
 }
 
 function pbkdf2(passphrase, salt, options, done) {
-  return crypto.pbkdf2(passphrase, salt, options.iterations, options.keylen, function createRawHash(err, hashRaw) {
-    if (err) { return done(err, null); }
+  return crypto.pbkdf2(passphrase, salt, options.hash.iterations, options.hash.keylen, function createRawHash(err, hashRaw) {
+    if (err) { return done(err); }
 
-    return done(err, new Buffer(hashRaw, 'binary').toString(options.encoding));
+    // crypto returns the error param as `undefined` but Mongoose and Express use `null`
+    return done(null, new Buffer(hashRaw, 'binary').toString(options.hash.encoding));
   });
 }
