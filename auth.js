@@ -10,7 +10,6 @@ module.exports = function authPlugin(schema, options) {
         required: true,
         unique: true,
         sparse: true,
-        select: false,
         trim: true
       },
       missingError: 'Username was not specified',
@@ -20,8 +19,7 @@ module.exports = function authPlugin(schema, options) {
       path: 'salt',
       options: {
         type: String,
-        required: true,
-        select: false
+        required: true
       },
       len: 32
     },
@@ -29,8 +27,7 @@ module.exports = function authPlugin(schema, options) {
       path: 'passphrase',
       options: {
         type: String,
-        required: true,
-        select: false
+        required: true
       },
       missingError: 'Passphrase was not specified',
       incorrectError: 'Incorrect passphrase'

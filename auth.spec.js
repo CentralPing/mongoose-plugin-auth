@@ -37,19 +37,16 @@ describe('Mongoose plugin: auth', function () {
     it('should append `username`', function () {
       expect(schema.path('username')).toBeDefined();
       expect(schema.path('username').isRequired).toBe(true);
-      expect(schema.path('username').selected).toBe(false);
     });
 
     it('should append `passphrase`', function () {
       expect(schema.path('passphrase')).toBeDefined();
       expect(schema.path('passphrase').isRequired).toBe(true);
-      expect(schema.path('passphrase').selected).toBe(false);
     });
 
     it('should append `salt`', function () {
       expect(schema.path('salt')).toBeDefined();
       expect(schema.path('salt').isRequired).toBe(true);
-      expect(schema.path('salt').selected).toBe(false);
     });
 
     it('should append static `authenticate`', function () {
