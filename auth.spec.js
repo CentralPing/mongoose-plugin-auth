@@ -34,9 +34,23 @@ describe('Mongoose plugin: auth', function () {
       schema.plugin(auth);
     });
 
-    it('should append `username`', function () {
-      expect(schema.path('username')).toBeDefined();
-      expect(schema.path('username').isRequired).toBe(true);
+    it('should append statics to Schema', function () {
+      expect(Object.keys(schema.statics).sort()).toEqual([
+        'authenticate',
+        'register',
+        'setPassphrase'
+      ]);
+    });
+
+    it('should append paths to Schema', function () {
+      expect(Object.keys(schema.paths).sort()).toEqual([
+        '_id',
+        'displayName',
+        'name',
+        'passphrase',
+        'salt',
+        'username'
+      ]);
     });
 
     it('should append `passphrase`', function () {
@@ -49,16 +63,9 @@ describe('Mongoose plugin: auth', function () {
       expect(schema.path('salt').isRequired).toBe(true);
     });
 
-    it('should append static `authenticate`', function () {
-      expect(schema.statics.authenticate).toEqual(jasmine.any(Function));
-    });
-
-    it('should append static `register`', function () {
-      expect(schema.statics.register).toEqual(jasmine.any(Function));
-    });
-
-    it('should append static `setPassphrase`', function () {
-      expect(schema.statics.setPassphrase).toEqual(jasmine.any(Function));
+    it('should append `username`', function () {
+      expect(schema.path('username')).toBeDefined();
+      expect(schema.path('username').isRequired).toBe(true);
     });
   });
 
