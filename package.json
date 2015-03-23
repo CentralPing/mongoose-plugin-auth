@@ -1,6 +1,6 @@
 {
   "name": "mongoose-plugin-auth",
-  "version": "1.4.1",
+  "version": "1.5.0-rc1",
   "description": "Mongoose.js plugin to add authorization methods to models.",
   "main": "auth.js",
   "dependencies": {
@@ -14,9 +14,12 @@
     "gulp-jasmine": "^2.0.0",
     "gulp-jshint": "^1.9.2",
     "gulp-todo": "^2.5.1",
-    "mongoose": "^3.8.25",
+    "mongoose": "^4.0.0-rc4",
     "yargs": "^3.5.3"
   },
+  "peerDependencies": {
+    "mongoose": ">=4.0.0-rc4"
+  ,
   "scripts": {
     "test": "gulp test"
   },
