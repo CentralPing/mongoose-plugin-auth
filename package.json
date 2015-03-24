@@ -1,6 +1,6 @@
 {
   "name": "mongoose-plugin-auth",
-  "version": "1.5.0-rc1",
+  "version": "1.5.0-rc2",
   "description": "Mongoose.js plugin to add authorization methods to models.",
   "main": "auth.js",
   "dependencies": {
@@ -19,7 +19,7 @@
   },
   "peerDependencies": {
     "mongoose": ">=4.0.0-rc4"
-  ,
+  },
   "scripts": {
     "test": "gulp test"
   },
