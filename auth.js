@@ -54,7 +54,7 @@ module.exports = function authPlugin(schema, options) {
     schema.path(options.passphrase.path, options.passphrase.options);
   }
 
-  schema.pre('validate', true, function setPassphrase(next, done) {
+  schema.pre('validate', true, function encryptPassphrase(next, done) {
     var user = this;
     var passphrase;
 
@@ -87,29 +87,44 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 
-  schema.static('register', function register(username, passphrase, extra, done) {
-    var Model = this;
-    var user = new Model();
+  schema.static('register', function register(username, passphrase, extra, cb) {
+    var User = this;
+    var user = new User();
 
     // Arity check
-    if (arguments.length === 2) {
-      // User.register(passphrase, done)
-      // Used if username field is autopopulated (`_id`)
-      done = passphrase;
+    if (arguments.length === 1) {
+      // User.register(passphrase)
+      // Used if username field is autopopulated (e.g. `_id`)
       passphrase = username;
       username = undefined;
     }
-    else if (arguments.length === 3) {
-      // User.register(username, passphrase, done)
-      // User.register(passphrase, extra, done)
-      done = extra;
+    else if (arguments.length === 2) {
+      if (_.isFunction(passphrase)) {
+        // User.register(passphrase, cb)
+        // Used if username field is autopopulated (e.g. `_id`)
+        cb = passphrase;
+        passphrase = username;
+        username = undefined;
+      }
+      else if (_.isPlainObject(passphrase)) {
+        // User.register(passphrase, extra)
+        // Used if username field is autopopulated (e.g. `_id`)
+        extra = passphrase;
+        passphrase = username;
+        username = undefined;
+      }
+    }
+    else if (arguments.length === 3 && _.isFunction(extra)) {
+      cb = extra;
 
       if (_.isPlainObject(passphrase)) {
+        // User.register(passphrase, extra, cb)
         extra = passphrase;
         passphrase = username;
         username = undefined;
       }
       else {
+        // User.register(username, passphrase, cb)
         extra = undefined;
       }
     }
@@ -124,83 +139,118 @@ module.exports = function authPlugin(schema, options) {
 
     user.set(options.passphrase.path, passphrase);
 
-    return user.save(done);
+    // returns promise
+    return user.save(cb);
   });
 
-  schema.static('setPassphrase', function register(username, passphrase, newPassphrase, done) {
-    var Model = this;
-
-    return Model.authenticate(username, passphrase, function (err, user) {
-      if (err) { return done(err, user); }
-
-      return user.setPassphrase(newPassphrase, done);
-    });
-  });
-
-  schema.method('setPassphrase', function register(passphrase, done) {
-    var user = this;
-
-    user.set(options.passphrase.path, passphrase);
-
-    return user.save(done);
-  });
-
-  schema.static('authenticate', function authenticate(username, passphrase, done) {
-    if (username === undefined || username === null) {
-      return done(new options.Error(options.username.missingError));
+  schema.static('setPassphrase', function setPassphrase(username, passphrase, newPassphrase, extra, cb) {
+    // Arity check
+    if (arguments.length === 4 && _.isFunction(extra)) {
+      // User.setPassphrase(username, passphrase, newPassphrase, cb)
+      cb = extra;
+      extra = undefined;
     }
 
-    return findByUsername(this, username, options, function (err, user) {
-      if (err) { return done(err, user); }
-
-      if (user === null) {
-        return done(new options.Error(options.username.incorrectError));
-      }
-
-      return user.authenticate(passphrase, done);
+    return this.authenticate(username, passphrase).then(function (user) {
+      return user.setPassphrase(newPassphrase, extra, cb);
+    }).then(null, function authenticationError(err) {
+      if (cb) { return cb(err); }
+      throw err;
     });
   });
 
-  schema.method('authenticate', function authenticate(passphrase, done) {
+  schema.method('setPassphrase', function setPassphrase(passphrase, extra, cb) {
+    // Arity check
+    if (arguments.length === 2 && _.isFunction(extra)) {
+      // user.setPassphrase(newPassphrase, cb)
+      cb = extra;
+      extra = undefined;
+    }
+
+    this.set(options.passphrase.path, passphrase);
+
+    if (extra !== undefined) {
+      this.set(extra);
+    }
+
+    // returns promise
+    return this.save(cb);
+  });
+
+  schema.static('authenticate', function authenticate(username, passphrase, cb) {
+    var User = this;
+    var promise = new User.base.Promise();
+
+    promise.fulfill(username);
+
+    return promise.then(function findByUsername(username) {
+      var query = User.findOne();
+
+      if (username === undefined || username === null) {
+        throw new options.Error(options.username.missingError);
+      }
+
+      query.where(options.username.path, username);
+      query.select([options.passphrase.path, options.salt.path].join(' '));
+
+      if (options.select) {
+        query.select(options.select);
+      }
+
+      if (options.populate) {
+        query.populate(options.populate);
+      }
+
+      return query.exec();
+    }).then(function authenticated(user) {
+      if (user === null) {
+        throw new options.Error(options.username.incorrectError);
+      }
+
+      return user.authenticate(passphrase, cb);
+    }).then(null, function authenticationError(err) {
+      if (cb) { return cb(err); }
+      throw err;
+    });
+  });
+
+  schema.method('authenticate', function authenticate(passphrase, cb) {
     var user = this;
+    var promise = new user.db.base.Promise();
 
     if (passphrase === undefined || passphrase === null) {
-      return done(new options.Error(options.passphrase.missingError));
+      promise.reject(new options.Error(options.passphrase.missingError));
+    }
+    else {
+      pbkdf2(passphrase, user.get(options.salt.path), options, function checkHash(err, hash) {
+        if (err) { return promise.reject(err); }
+
+        if (hash !== user.get(options.passphrase.path)) {
+          return promise.reject(new options.Error(options.passphrase.incorrectError));
+        }
+
+        return promise.fulfill(user);
+      });
     }
 
-    return pbkdf2(passphrase, user.get(options.salt.path), options, function checkHash(err, hash) {
-      if (err) { return done(err); }
-
-      if (hash !== user.get(options.passphrase.path)) {
-        return done(new options.Error(options.passphrase.incorrectError));
-      }
-
-      return done(err, user);
+    return promise.then(function authenticated(user) {
+      if (cb) { return cb(null, user); }
+      return user;
+    }).then(null, function authenticationError(err) {
+      if (cb) { return cb(err); }
+      throw err;
     });
   });
 };
 
-function findByUsername(Model, username, options, done) {
-  var query = Model.findOne().where(options.username.path, username);
 
-  query.select([options.passphrase.path, options.salt.path].join(' '));
 
-  if (options.select) {
-    query.select(options.select);
-  }
-
-  if (options.populate) {
-    query.populate(options.populate);
-  }
-
-  return done ? query.exec(done) : query;
-}
-
-function pbkdf2(passphrase, salt, options, done) {
+function pbkdf2(passphrase, salt, options, cb) {
+  // async method
   return crypto.pbkdf2(passphrase, salt, options.hash.iterations, options.hash.keylen, function createRawHash(err, hashRaw) {
-    if (err) { return done(err); }
+    if (err) { return cb(err); }
 
     // crypto returns the error param as `undefined` but Mongoose and Express use `null`
-    return done(null, new Buffer(hashRaw, 'binary').toString(options.hash.encoding));
+    return cb(null, new Buffer(hashRaw, 'binary').toString(options.hash.encoding));
   });
 }
