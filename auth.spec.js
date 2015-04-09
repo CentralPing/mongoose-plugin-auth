@@ -434,6 +434,56 @@ describe('Mongoose plugin: auth', function () {
       });
     });
 
+    it('should not authenticate an unspecified user', function (done) {
+      User.authenticate(undefined, undefined, function (err, user) {
+        expect(err).not.toBe(null);
+        expect(err.message).toBe('Username was not specified');
+        expect(user).toBeUndefined();
+
+        done();
+      });
+    });
+
+    it('should not authenticate a specified user of incorrect type', function (done) {
+      User.authenticate(faker.internet.userName(), undefined, function (err, user) {
+        expect(err).not.toBe(null);
+        expect(err.message).toBe('Unknown username');
+        expect(user).toBeUndefined();
+
+        done();
+      });
+    });
+
+    it('should not authenticate an unknown user', function (done) {
+      User.authenticate(mongoose.Types.ObjectId(), undefined, function (err, user) {
+        expect(err).not.toBe(null);
+        expect(err.message).toBe('Unknown username');
+        expect(user).toBeUndefined();
+
+        done();
+      });
+    });
+
+    it('should not authenticate an unspecified passphrase', function (done) {
+      User.authenticate(users[0].id, undefined, function (err, user) {
+        expect(err).not.toBe(null);
+        expect(err.message).toBe('Passphrase was not specified');
+        expect(user).toBeUndefined();
+
+        done();
+      });
+    });
+
+    it('should not authenticate a user with an incorrect passphrase', function (done) {
+      User.authenticate(users[0].id, faker.internet.password(), function (err, user) {
+        expect(err).not.toBe(null);
+        expect(err.message).toBe('Incorrect passphrase');
+        expect(user).toBeUndefined();
+
+        done();
+      });
+    });
+
     it('should authenticate a user', function (done) {
       User.authenticate(users[0].id, users[0].password, function (err, user) {
         expect(err).toBe(null);

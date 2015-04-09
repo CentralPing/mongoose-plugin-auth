@@ -209,6 +209,13 @@ module.exports = function authPlugin(schema, options) {
 
       return user.authenticate(passphrase, cb);
     }).then(null, function authenticationError(err) {
+      if (err.name === 'CastError') {
+        // The provided username could not be cast correctly by mongoose
+        // This is typical when using an ObjectId as the username
+        // Convert CastError to designated Error type
+        err = new options.Error(options.username.incorrectError);
+      }
+
       if (cb) { return cb(err); }
       throw err;
     });
