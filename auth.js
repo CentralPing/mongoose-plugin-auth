@@ -15,14 +15,6 @@ module.exports = function authPlugin(schema, options) {
       missingError: 'Username was not specified',
       incorrectError: 'Unknown username'
     },
-    salt: {
-      path: 'salt',
-      options: {
-        type: String,
-        required: true
-      },
-      len: 32
-    },
     passphrase: {
       path: 'passphrase',
       options: {
@@ -31,6 +23,14 @@ module.exports = function authPlugin(schema, options) {
       },
       missingError: 'Passphrase was not specified',
       incorrectError: 'Incorrect passphrase'
+    },
+    salt: {
+      path: 'salt',
+      options: {
+        type: String,
+        required: true
+      },
+      len: 32
     },
     hash: {
       iterations: 25000,
@@ -209,7 +209,7 @@ module.exports = function authPlugin(schema, options) {
 
       return user.authenticate(passphrase, cb);
     }).then(null, function authenticationError(err) {
-      if (err.name === 'CastError') {
+      if (err.name === 'CastError' && err.path === options.username.path) {
         // The provided username could not be cast correctly by mongoose
         // This is typical when using an ObjectId as the username
         // Convert CastError to designated Error type
