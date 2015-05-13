@@ -16,7 +16,7 @@ describe('Mongoose plugin: auth', function () {
   });
 
   afterAll(function (done) {
-    connection.db.dropDatabase(function (err, result) {
+    connection.db.dropDatabase(function () {
       connection.close(function () {
         done();
       });
@@ -245,8 +245,6 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should update the passphrase and authenticate', function (done) {
-      var salt;
-      var hash;
       var password = faker.internet.password();
 
       User.setPassphrase(users[1].username, users[1].password, password, function (err, user) {
@@ -278,8 +276,6 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should update the passphrase and authenticate with extra fields populated', function (done) {
-      var salt;
-      var hash;
       var password = faker.internet.password();
 
       User.setPassphrase(users[1].username, users[1].password, password, {name: faker.name.findName()}, function (err, user) {
@@ -646,8 +642,6 @@ describe('Mongoose plugin: auth', function () {
       });
 
       it('should update the passphrase and authenticate', function (done) {
-        var salt;
-        var hash;
         var password = faker.internet.password();
 
         User.setPassphrase(users[1].username, users[1].password, password).onResolve(function (err, user) {
@@ -679,8 +673,6 @@ describe('Mongoose plugin: auth', function () {
       });
 
       it('should update the passphrase and authenticate with extra fields populated', function (done) {
-        var salt;
-        var hash;
         var password = faker.internet.password();
 
         User.setPassphrase(users[1].username, users[1].password, password, {name: faker.name.findName()}).onResolve(function (err, user) {
