@@ -1,0 +1,66 @@
+mongoose-plugin-auth
+====================
+
+[ ![Codeship Status for CentralPing/mongoose-plugin-auth](https://codeship.com/projects/f3542f70-4b40-0132-ba3a-3e5cf71b5945/status)](https://codeship.com/projects/46700)
+[ ![Code Climate for CentralPing/mongoose-plugin-auth](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth/badges/gpa.svg)](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth)
+[ ![Dependency Status for CentralPing/mongoose-plugin-auth](https://david-dm.org/CentralPing/mongoose-plugin-auth.svg)](https://david-dm.org/CentralPing/mongoose-plugin-auth)
+
+A [mongoose.js](https://github.com/LearnBoost/mongoose/) plugin to add authorization methods to models and instances.
+
+## Installation
+
+`npm i --save mongoose-plugin-auth`
+
+## API Reference
+{{#module name="mongoose-plugin-auth"~}}
+{{>body~}}
+{{>members~}}
+{{/module}}
+
+## Examples
+
+### With Defaults
+```js
+var authPlugin = require('mongoose-plugin-auth');
+var schema = Schema({foo: String});
+schema.plugin(authPlugin);
+
+var Foo = mongoose.model('Foo', schema);
+Foo.register('tom', 'my new passphrase').then(function (user) {
+  // user is a new document persisted to the database
+});
+
+// ...
+
+Foo.authenticate('tom', 'my new passphrase').then(function (user) {
+  // user is the authenticated user document
+}).then(null, function(err) {
+  // err will report any authentication errors.
+});
+```
+
+### With Options (using `_id` as username)
+```js
+var authPlugin = require('mongoose-plugin-auth');
+var schema = Schema({foo: String});
+schema.plugin(authPlugin{
+  username: {path: '_id'}
+});
+
+var Foo = mongoose.model('Foo', schema);
+Foo.register('my new passphrase').then(function (user) {
+  // user is a new document persisted to the database
+});
+
+// ...
+
+Foo.authenticate('507f191e810c19729de970fb', 'my new passphrase').then(function (user) {
+  // user is the authenticated user document
+}).then(null, function(err) {
+  // err will report any authentication errors.
+});
+```
+
+# License
+
+Apache 2.0

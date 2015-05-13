@@ -1,7 +1,58 @@
+'use strict';
+/* jshint node: true */
+
 var crypto = require('crypto');
 var _ = require('lodash-node/modern');
 
+/**
+ * @module mongoose-plugin-auth
+ * @example
+```js
+var authPlugin = require('mongoose-plugin-auth');
+var schema = Schema({...});
+schema.plugin(authPlugin[, OPTIONS]);
+```
+*/
+
 module.exports = function authPlugin(schema, options) {
+  /**
+   * @param {object} [options]
+
+   * @param {object} [options.username] - options for configuring the username.
+   * @param {string} [options.username.path=username] - the path for storing the username. *Value can be set to `_id`*
+   * @param {object} [options.username.options] - options for configuring the username path in the schema.
+   * @param {object} [options.username.options.type=String] - object type for the username path. *Specifying an existing username path ignores all options specified here.*
+   * @param {boolean} [options.username.options.required=true] - spcifies wether the username path is required.
+   * @param {boolean} [options.username.options.unique=true] - spcifies wether the username path is required.
+   * @param {boolean} [options.username.options.sparse=true] - spcifies wether the username path is required.
+   * @param {boolean} [options.username.options.trim=true] - spcifies wether the username path is required.
+   * @param {string} [options.username.missingError=Username was not specified] - message returned via an error object for methods requiring a username.
+   * @param {string} [options.username.incorrectError=Unknown username] - message returned via an error object if username does not match a record.
+
+   * @param {object} [options.passphrase] - options for configuring the passphrase.
+   * @param {string} [options.passphrase.path=passphrase] - the path for storing the passphrase.
+   * @param {object} [options.passphrase.options] - options for configuring the passphrase path in the schema.
+   * @param {object} [options.passphrase.options.type=String] - object type for the passphrase path. *Specifying an existing passphrase path ignores all options specified here.*
+   * @param {boolean} [options.passphrase.options.required=true] - spcifies wether the passphrase path is required.
+   * @param {string} [options.passphrase.missingError=Passphrase was not specified] - message returned via an error object for methods requiring a passphrase.
+   * @param {string} [options.passphrase.incorrectError=Incorrect passphrase] - message returned via an error object if passphrase does not match the record.
+
+   * @param {object} [options.salt] - options for configuring the salt.
+   * @param {string} [options.salt.path=salt] - the path for storing the salt.
+   * @param {object} [options.salt.options] - options for configuring the salt path in the schema.
+   * @param {object} [options.salt.options.type=String] - object type for the salt path. *Specifying an existing salt path ignores all options specified here.*
+   * @param {boolean} [options.salt.options.required=true] - spcifies wether the salt path is required.
+   * @param {number} [options.salt.len=32] - the string length to use for the salt.
+
+   * @param {object} [options.hash] - options for configuring the hash using the [crypto](https://nodejs.org/api/crypto.html) module.
+   * @param {number} [options.hash.iterations=25000] - number of iterations for generating the hash.
+   * @param {number} [options.hash.keylen.type=512] - the string length of the generated hash.
+   * @param {string} [options.hash.encoding=hex] - the encoding algorithm to use for the hash.
+
+   * @param {object} [Error=Error] - Error object to use for reporting errors. *Must be of the type Error or inherites from it*
+   * @param {string} [select] - Mongoose field selection to use for authenticate method/static.
+   * @param {string} [populate] - Mongoose populate selection to use for authenticate method/static.
+  */
   options = _.merge({
     username: {
       path: 'username',
@@ -87,6 +138,27 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 
+  /**
+   * The `register` static is a convenience function to add a new user document.
+   * @function register
+   * @param {string} [username] - Username value to use. Optional if using the `_id` value.
+   * @param {string} passphrase - Raw passphrase value. Hashed automatically before storing using crypto module.
+   * @param {object} [extra] - Any extra object properties that match the schema to be included in the new user document.
+   * @param {function} [cb] - A mongoose promise is returned if no callback is provided.
+   * @return {promise}
+
+   * @example
+  ```js
+MyUserMode.register('tom', 'my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
+MyUserMode.register('tom', 'my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserMode.register('tom', 'my secret passphrase', function(err, user) { ... });
+MyUserMode.register('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserMode.register('my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... }); // Uses `_id` for the username
+MyUserMode.register('my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
+MyUserMode.register('my secret passphrase', function(err, user) { ... }); // Uses `_id` for the username
+MyUserMode.register('my secret passphrase').then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
+  ```
+  */
   schema.static('register', function register(username, passphrase, extra, cb) {
     var User = this;
     var user = new User();
@@ -143,6 +215,24 @@ module.exports = function authPlugin(schema, options) {
     return user.save(cb);
   });
 
+  /**
+   * The `setPassphrase` static is a convenience function to set the passphrase for a user. *Alternatively you can simply set the passphrase to a new value directly on the document object and save/update.*
+   * @function setPassphrase
+   * @param {string} username - Username value to use.
+   * @param {string} passphrase - Raw passphrase value. Hashed automatically before storing using crypto module.
+   * @param {string} newPassphrase - Raw new passphrase value. Hashed automatically before storing using crypto module.
+   * @param {object} [extra] - Any extra object properties that match the schema to be included in the update.
+   * @param {function} [cb] - A mongoose promise is returned if no callback is provided.
+   * @return {promise}
+
+   * @example
+  ```js
+MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
+MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', function(err, user) { ... });
+MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+  ```
+  */
   schema.static('setPassphrase', function setPassphrase(username, passphrase, newPassphrase, extra, cb) {
     // Arity check
     if (arguments.length === 4 && _.isFunction(extra)) {
@@ -159,6 +249,22 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 
+  /**
+   * The `setPassphrase` method is a convenience function to set the passphrase for a user. *Alternatively you can simply set the passphrase to a new value directly on the document object and save/update.*
+   * @function setPassphrase
+   * @param {string} passphrase - Raw new passphrase value. Hashed automatically before storing using crypto module.
+   * @param {object} [extra] - Any extra object properties that match the schema to be included in the update.
+   * @param {function} [cb] - A mongoose promise is returned if no callback is provided.
+   * @return {promise}
+
+   * @example
+  ```js
+user.setPassphrase('my new secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
+user.setPassphrase('my new secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
+user.setPassphrase('my new secret passphrase', function(err, user) { ... });
+user.setPassphrase('my new secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+  ```
+  */
   schema.method('setPassphrase', function setPassphrase(passphrase, extra, cb) {
     // Arity check
     if (arguments.length === 2 && _.isFunction(extra)) {
@@ -177,6 +283,20 @@ module.exports = function authPlugin(schema, options) {
     return this.save(cb);
   });
 
+  /**
+   * The `authenticate` static is a function to validate the passphrase for a user.
+   * @function authenticate
+   * @param {string} username - Username value to use.
+   * @param {string} passphrase - Raw passphrase value. Hashed automatically before storing using crypto module.
+   * @param {function} [cb] - A mongoose promise is returned if no callback is provided.
+   * @return {promise}
+
+   * @example
+  ```js
+MyUserMode.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
+MyUserMode.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+  ```
+  */
   schema.static('authenticate', function authenticate(username, passphrase, cb) {
     var User = this;
     var promise = new User.base.Promise();
@@ -221,6 +341,19 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 
+  /**
+   * The `authenticate` method is a function to validate the passphrase for a user.
+   * @function authenticate
+   * @param {string} passphrase - Raw passphrase value. Hashed automatically before storing using crypto module.
+   * @param {function} [cb] - A mongoose promise is returned if no callback is provided.
+   * @return {promise}
+
+   * @example
+  ```js
+user.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
+user.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+  ```
+  */
   schema.method('authenticate', function authenticate(passphrase, cb) {
     var user = this;
     var promise = new user.db.base.Promise();
@@ -249,8 +382,6 @@ module.exports = function authPlugin(schema, options) {
     });
   });
 };
-
-
 
 function pbkdf2(passphrase, salt, options, cb) {
   // async method

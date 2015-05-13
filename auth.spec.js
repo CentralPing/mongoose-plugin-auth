@@ -1,3 +1,6 @@
+'use strict';
+/* jshint node: true, jasmine: true */
+
 var mongoose = require('mongoose');
 var faker = require('faker');
 var auth = require('./auth');
@@ -24,7 +27,7 @@ describe('Mongoose plugin: auth', function () {
     var schema;
 
     beforeAll(function() {
-      schema = UserSchema();
+      schema = userSchema();
       schema.plugin(auth);
     });
 
@@ -68,7 +71,7 @@ describe('Mongoose plugin: auth', function () {
 
     beforeAll(function() {
       var User;
-      var schema = UserSchema();
+      var schema = userSchema();
       schema.plugin(auth);
 
       User = model('User', schema);
@@ -86,7 +89,7 @@ describe('Mongoose plugin: auth', function () {
 
   describe('with plugin options', function () {
     it('should allow custom paths', function () {
-      var schema = UserSchema();
+      var schema = userSchema();
 
       schema.plugin(auth, {
         username: {path: 'u'},
@@ -107,10 +110,13 @@ describe('Mongoose plugin: auth', function () {
     var users;
 
     beforeAll(function (done) {
-      var schema = UserSchema();
+      var schema = userSchema();
       schema.plugin(auth);
 
+      /* jshint -W064 */
+      // https://github.com/jshint/jshint/issues/1987
       users = Array(3).join('.').split('.').map(function () {
+      /* jshint +W064 */
         return {
           name: faker.name.findName(),
           username: faker.internet.userName(),
@@ -373,7 +379,10 @@ describe('Mongoose plugin: auth', function () {
 
   describe('with user registration with usernamePath set to `_id`', function () {
     var User;
+
+      /*jshint -W064 */
     var users = Array(2).join('.').split('.').map(function () {
+      /*jshint +W064 */
       return {
         name: faker.name.findName(),
         password: faker.internet.password()
@@ -381,7 +390,7 @@ describe('Mongoose plugin: auth', function () {
     });
 
     beforeAll(function (done) {
-      var schema = UserSchema();
+      var schema = userSchema();
       schema.plugin(auth, {
         username: {path: '_id'}
       });
@@ -503,10 +512,12 @@ describe('Mongoose plugin: auth', function () {
       var users;
 
       beforeAll(function (done) {
-        var schema = UserSchema();
+        var schema = userSchema();
         schema.plugin(auth);
 
+        /*jshint -W064 */
         users = Array(3).join('.').split('.').map(function () {
+        /*jshint +W064 */
           return {
             name: faker.name.findName(),
             username: faker.internet.userName(),
@@ -769,7 +780,9 @@ describe('Mongoose plugin: auth', function () {
 
     describe('with user registration with usernamePath set to `_id`', function () {
       var User;
+      /*jshint -W064 */
       var users = Array(2).join('.').split('.').map(function () {
+      /*jshint +W064 */
         return {
           name: faker.name.findName(),
           password: faker.internet.password()
@@ -777,7 +790,7 @@ describe('Mongoose plugin: auth', function () {
       });
 
       beforeAll(function (done) {
-        var schema = UserSchema();
+        var schema = userSchema();
         schema.plugin(auth, {
           username: {path: '_id'}
         });
@@ -856,8 +869,8 @@ function model(name, schema) {
   return connection.model(name, schema, name);
 }
 
-function UserSchema() {
-  return Schema({
+function userSchema() {
+  return new Schema({
     name: String,
     displayName: String
   });
