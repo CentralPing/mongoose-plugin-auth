@@ -153,7 +153,6 @@ describe('Mongoose plugin: auth', function () {
 
     it('should register a new user', function (done) {
       User.register(users[0].username, users[0].password, function (err, user) {
-        console.log(typeof user.salt);
         expect(err).to.be.null;
         expect(user).to.be.an('object');
         expect(user.username).to.be.equal(users[0].username);
