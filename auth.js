@@ -2,7 +2,7 @@
 /* jshint node: true */
 
 var crypto = require('crypto');
-var _ = require('lodash-node/modern');
+var _ = require('lodash');
 
 /**
  * @module mongoose-plugin-auth
