@@ -15,6 +15,9 @@ var Schema = mongoose.Schema;
 var connection;
 
 describe('Mongoose plugin: auth', function () {
+  // Prevent test timeout on travis
+  this.timeout(5000);
+
   before(function (done) {
     connection = mongoose.createConnection(connectionString);
     connection.once('connected', function () {
