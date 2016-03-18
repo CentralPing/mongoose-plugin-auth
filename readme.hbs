@@ -1,9 +1,10 @@
 mongoose-plugin-auth
 ====================
 
-[ ![Codeship Status for CentralPing/mongoose-plugin-auth](https://codeship.com/projects/f3542f70-4b40-0132-ba3a-3e5cf71b5945/status)](https://codeship.com/projects/46700)
-[ ![Code Climate for CentralPing/mongoose-plugin-auth](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth/badges/gpa.svg)](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth)
-[ ![Dependency Status for CentralPing/mongoose-plugin-auth](https://david-dm.org/CentralPing/mongoose-plugin-auth.svg)](https://david-dm.org/CentralPing/mongoose-plugin-auth)
+[![Codeship Status for CentralPing/mongoose-plugin-auth](https://codeship.com/projects/f3542f70-4b40-0132-ba3a-3e5cf71b5945/status)](https://codeship.com/projects/46700)
+[![Build Status](https://travis-ci.org/CentralPing/mongoose-plugin-auth.svg?branch=master)](https://travis-ci.org/CentralPing/mongoose-plugin-auth)
+[![Code Climate for CentralPing/mongoose-plugin-auth](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth/badges/gpa.svg)](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth)
+[![Dependency Status for CentralPing/mongoose-plugin-auth](https://david-dm.org/CentralPing/mongoose-plugin-auth.svg)](https://david-dm.org/CentralPing/mongoose-plugin-auth)
 
 A [mongoose.js](https://github.com/LearnBoost/mongoose/) plugin to add authorization methods to models and instances.
 
