@@ -2,7 +2,6 @@ mongoose-plugin-auth
 ====================
 
 [ ![Codeship Status for CentralPing/mongoose-plugin-auth](https://codeship.com/projects/f3542f70-4b40-0132-ba3a-3e5cf71b5945/status)](https://codeship.com/projects/46700)
-[![Build Status](https://travis-ci.org/CentralPing/mongoose-plugin-auth.svg?branch=master)](https://travis-ci.org/CentralPing/mongoose-plugin-auth)
 [ ![Code Climate for CentralPing/mongoose-plugin-auth](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth/badges/gpa.svg)](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth)
 [ ![Dependency Status for CentralPing/mongoose-plugin-auth](https://david-dm.org/CentralPing/mongoose-plugin-auth.svg)](https://david-dm.org/CentralPing/mongoose-plugin-auth)
 
@@ -72,14 +71,14 @@ The `register` static is a convenience function to add a new user document.
 
 **Example**  
 ```js
-MyUserMode.register('tom', 'my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
-MyUserMode.register('tom', 'my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
-MyUserMode.register('tom', 'my secret passphrase', function(err, user) { ... });
-MyUserMode.register('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
-MyUserMode.register('my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... }); // Uses `_id` for the username
-MyUserMode.register('my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
-MyUserMode.register('my secret passphrase', function(err, user) { ... }); // Uses `_id` for the username
-MyUserMode.register('my secret passphrase').then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
+MyUserModel.register('tom', 'my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
+MyUserModel.register('tom', 'my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.register('tom', 'my secret passphrase', function(err, user) { ... });
+MyUserModel.register('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.register('my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... }); // Uses `_id` for the username
+MyUserModel.register('my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
+MyUserModel.register('my secret passphrase', function(err, user) { ... }); // Uses `_id` for the username
+MyUserModel.register('my secret passphrase').then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
   ```
 <a name="module_mongoose-plugin-auth..setPassphrase"></a>
 ### mongoose-plugin-auth~setPassphrase(username, passphrase, newPassphrase, [extra], [cb]) ⇒ <code>promise</code>
@@ -97,10 +96,10 @@ The `setPassphrase` static is a convenience function to set the passphrase for a
 
 **Example**  
 ```js
-MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
-MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
-MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', function(err, user) { ... });
-MyUserMode.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', function(err, user) { ... });
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
   ```
 <a name="module_mongoose-plugin-auth..setPassphrase"></a>
 ### mongoose-plugin-auth~setPassphrase(passphrase, [extra], [cb]) ⇒ <code>promise</code>
@@ -135,8 +134,8 @@ The `authenticate` static is a function to validate the passphrase for a user.
 
 **Example**  
 ```js
-MyUserMode.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
-MyUserMode.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
+MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
   ```
 <a name="module_mongoose-plugin-auth..authenticate"></a>
 ### mongoose-plugin-auth~authenticate(passphrase, [cb]) ⇒ <code>promise</code>
