@@ -1,5 +1,5 @@
 'use strict';
-/* jshint node: true */
+/* jshint node: true, esnext: true */
 
 var crypto = require('crypto');
 var _ = require('lodash');
@@ -122,18 +122,18 @@ module.exports = function authPlugin(schema, options) {
       return done();
     }
 
-    return crypto.randomBytes(options.salt.len, function createSalt(err, buf) {
+    crypto.randomBytes(options.salt.len, function createSalt(err, buf) {
       if (err) { return done(err); }
 
       var salt = buf.toString(options.hash.encoding);
 
-      return pbkdf2(passphrase, salt, options, function createHash(err, hash) {
+      pbkdf2(passphrase, salt, options, function createHash(err, hash) {
         if (err) { return done(err); }
 
         user.set(options.passphrase.path, hash);
         user.set(options.salt.path, salt);
 
-        return done();
+        done();
       });
     });
   });
@@ -243,7 +243,7 @@ MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphra
 
     return this.authenticate(username, passphrase).then(function (user) {
       return user.setPassphrase(newPassphrase, extra, cb);
-    }).then(null, function authenticationError(err) {
+    }).catch(function authenticationError(err) {
       if (cb) { return cb(err); }
       throw err;
     });
@@ -299,15 +299,11 @@ MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ..
   */
   schema.static('authenticate', function authenticate(username, passphrase, cb) {
     var User = this;
-    var promise = new User.base.Promise();
-
-    promise.fulfill(username);
-
-    return promise.then(function findByUsername(username) {
+    var promise = new User.base.Promise.ES6(function (resolve, reject) {
       var query = User.findOne();
 
       if (username === undefined || username === null) {
-        throw new options.Error(options.username.missingError);
+        return reject(options.Error(options.username.missingError));
       }
 
       query.where(options.username.path, username);
@@ -321,14 +317,16 @@ MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ..
         query.populate(options.populate);
       }
 
-      return query.exec();
-    }).then(function authenticated(user) {
+      resolve(query.exec());
+    });
+
+    return promise.then(function authenticated(user) {
       if (user === null) {
         throw new options.Error(options.username.incorrectError);
       }
 
       return user.authenticate(passphrase, cb);
-    }).then(null, function authenticationError(err) {
+    }).catch(function authenticationError(err) {
       if (err.name === 'CastError' && err.path === options.username.path) {
         // The provided username could not be cast correctly by mongoose
         // This is typical when using an ObjectId as the username
@@ -356,27 +354,28 @@ user.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, fu
   */
   schema.method('authenticate', function authenticate(passphrase, cb) {
     var user = this;
-    var promise = new user.db.base.Promise();
 
-    if (passphrase === undefined || passphrase === null) {
-      promise.reject(new options.Error(options.passphrase.missingError));
-    }
-    else {
-      pbkdf2(passphrase, user.get(options.salt.path), options, function checkHash(err, hash) {
-        if (err) { return promise.reject(err); }
+    var promise = new user.constructor.base.Promise.ES6(function (resolve, reject) {
+      if (passphrase === undefined || passphrase === null) {
+        reject(new options.Error(options.passphrase.missingError));
+      }
+      else {
+        pbkdf2(passphrase, user.get(options.salt.path), options, function checkHash(err, hash) {
+          if (err) { return reject(err); }
 
-        if (hash !== user.get(options.passphrase.path)) {
-          return promise.reject(new options.Error(options.passphrase.incorrectError));
-        }
+          if (hash !== user.get(options.passphrase.path)) {
+            return reject(new options.Error(options.passphrase.incorrectError));
+          }
 
-        return promise.fulfill(user);
-      });
-    }
+          resolve(user);
+        });
+      }
+    });
 
     return promise.then(function authenticated(user) {
       if (cb) { return cb(null, user); }
       return user;
-    }).then(null, function authenticationError(err) {
+    }).catch(function authenticationError(err) {
       if (cb) { return cb(err); }
       throw err;
     });
