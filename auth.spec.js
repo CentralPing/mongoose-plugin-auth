@@ -6,13 +6,19 @@ var mongoose = require('mongoose');
 var faker = require('faker');
 var auth = require('./auth');
 
-var connectionString = 'mongodb://' +
-  (process.env.MONGO_HOST || 'localhost') +
-  (process.env.MONGO_PORT ? ':' + process.env.MONGO_PORT : '') +
-  '/unit_test';
+var connectionString = process.env.MONGO_URL || 'mongodb://localhost/unit_test';
 
 var Schema = mongoose.Schema;
 var connection;
+
+// Mongoose uses internal caching for models.
+// While {cache: false} works with most models, models using references
+// use the internal model cache for the reference.
+// This removes the mongoose entirely from node's cache
+delete require.cache.mongoose;
+
+// Set Mongoose internal promise object to be the native Promise object
+mongoose.Promise = global.Promise;
 
 describe('Mongoose plugin: auth', function () {
   // Prevent test timeout on travis
@@ -20,16 +26,12 @@ describe('Mongoose plugin: auth', function () {
 
   before(function (done) {
     connection = mongoose.createConnection(connectionString);
-    connection.once('connected', function () {
-      done();
-    });
+    connection.once('connected', done);
   });
 
   after(function (done) {
     connection.db.dropDatabase(function () {
-      connection.close(function () {
-        done();
-      });
+      connection.close(done);
     });
   });
 
@@ -136,9 +138,7 @@ describe('Mongoose plugin: auth', function () {
 
       User = model('User', schema);
 
-      User.collection.remove(function () {
-        done();
-      });
+      User.collection.remove(done);
     });
 
     it('should not register a new user without either `username` or `passphrase` specified', function (done) {
@@ -403,9 +403,7 @@ describe('Mongoose plugin: auth', function () {
 
       User = model('User', schema);
 
-      User.collection.remove(function () {
-        done();
-      });
+      User.collection.remove(done);
     });
 
     it('should not register a new user without `passphrase` specified', function (done) {
@@ -533,27 +531,23 @@ describe('Mongoose plugin: auth', function () {
 
         User = model('User', schema);
 
-        User.collection.remove(function () {
-          done();
-        });
+        User.collection.remove(done);
       });
 
-      it('should not register a new user without either `username` or `passphrase` specified', function (done) {
-        User.register(undefined, undefined).onResolve(function (err, user) {
-          expect(err).not.to.be.null;
+      it('should not register a new user without either `username` or `passphrase` specified', function () {
+        return User.register(undefined, undefined).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err.errors).to.have.all.keys('salt', 'username', 'passphrase');
           expect(err.errors.salt).to.be.an('object');
           expect(err.errors.username).to.be.an('object');
           expect(err.errors.passphrase).to.be.an('object');
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should register a new user', function (done) {
-        User.register(users[0].username, users[0].password).onResolve(function (err, user) {
-          expect(err).to.be.null;
+      it('should register a new user', function () {
+        return User.register(users[0].username, users[0].password).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.username).to.be.equal(users[0].username);
           expect(user.salt).to.be.a('string');
@@ -563,25 +557,22 @@ describe('Mongoose plugin: auth', function () {
           users[0].id = user.id;
           users[0].salt = user.salt;
           users[0].passphrase = user.passphrase;
-
-          done();
         });
       });
 
-      it('should not register a new user with an existing `username`', function (done) {
-        User.register(users[0].username, users[0].password).onResolve(function (err, user) {
+      it('should not register a new user with an existing `username`', function () {
+        return User.register(users[0].username, users[0].password).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err).not.to.be.null;
           expect(err.name).to.be.equal('MongoError');
           expect(err.code).to.be.equal(11000);
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should register a new user with extra fields populated', function (done) {
-        User.register(users[1].username, users[1].password, {name: users[1].name}).onResolve(function (err, user) {
-          expect(err).to.be.null;
+      it('should register a new user with extra fields populated', function () {
+        return User.register(users[1].username, users[1].password, {name: users[1].name}).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.username).to.be.equal(users[1].username);
           expect(user.name).to.be.equal(users[1].name);
@@ -592,70 +583,64 @@ describe('Mongoose plugin: auth', function () {
           users[1].id = user.id;
           users[1].salt = user.salt;
           users[1].passphrase = user.passphrase;
-
-          done();
         });
       });
 
-      it('should not authenticate an unspecified user', function (done) {
-        User.authenticate(undefined, undefined).onResolve(function (err, user) {
+      it('should not authenticate an unspecified user', function () {
+        return User.authenticate(undefined, undefined).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err).not.to.be.null;
           expect(err.message).to.be.equal('Username was not specified');
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should not authenticate an unknown user', function (done) {
-        User.authenticate(users[2].username, undefined).onResolve(function (err, user) {
+      it('should not authenticate an unknown user', function () {
+        return User.authenticate(users[2].username, undefined).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err).not.to.be.null;
           expect(err.message).to.be.equal('Unknown username');
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should not authenticate an unspecified passphrase', function (done) {
-        User.authenticate(users[0].username, undefined).onResolve(function (err, user) {
+      it('should not authenticate an unspecified passphrase', function () {
+        return User.authenticate(users[0].username, undefined).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err).not.to.be.null;
           expect(err.message).to.be.equal('Passphrase was not specified');
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should not authenticate a user with an incorrect passphrase', function (done) {
-        User.authenticate(users[0].username, faker.internet.password()).onResolve(function (err, user) {
+      it('should not authenticate a user with an incorrect passphrase', function () {
+        return User.authenticate(users[0].username, faker.internet.password()).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err).not.to.be.null;
           expect(err.message).to.be.equal('Incorrect passphrase');
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should authenticate a user with correct username/passphrase', function (done) {
-        User.authenticate(users[0].username, users[0].password).onResolve(function (err, user) {
-          expect(err).to.be.null;
+      it('should authenticate a user with correct username/passphrase', function () {
+        return User.authenticate(users[0].username, users[0].password).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
           expect(user.salt).to.be.a('string');
           expect(user.salt).to.be.equal(users[0].salt);
           expect(user.passphrase).to.be.a('string');
           expect(user.passphrase).to.be.equal(users[0].passphrase);
-
-          done();
         });
       });
 
-      it('should update the passphrase and authenticate', function (done) {
+      it('should update the passphrase and authenticate', function () {
         var password = faker.internet.password();
 
-        User.setPassphrase(users[1].username, users[1].password, password).onResolve(function (err, user) {
-          expect(err).to.be.null;
+        return User.setPassphrase(users[1].username, users[1].password, password).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[1].id);
           expect(user.salt).to.be.a('string');
@@ -668,25 +653,21 @@ describe('Mongoose plugin: auth', function () {
           users[1].salt = user.salt;
           users[1].passphrase = user.passphrase;
 
-          user.authenticate(users[1].password).onResolve(function (err, user) {
-            expect(err).to.be.null;
+          return user.authenticate(users[1].password).then(function (user) {
             expect(user).to.be.an('object');
             expect(user.id).to.be.equal(users[1].id);
             expect(user.salt).to.be.a('string');
             expect(user.salt).to.be.equal(users[1].salt);
             expect(user.passphrase).to.be.a('string');
             expect(user.passphrase).to.be.equal(users[1].passphrase);
-
-            done();
           });
         });
       });
 
-      it('should update the passphrase and authenticate with extra fields populated', function (done) {
+      it('should update the passphrase and authenticate with extra fields populated', function () {
         var password = faker.internet.password();
 
-        User.setPassphrase(users[1].username, users[1].password, password, {name: faker.name.findName()}).onResolve(function (err, user) {
-          expect(err).to.be.null;
+        return User.setPassphrase(users[1].username, users[1].password, password, {name: faker.name.findName()}).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[1].id);
           expect(user.salt).to.be.a('string');
@@ -701,25 +682,21 @@ describe('Mongoose plugin: auth', function () {
           users[1].passphrase = user.passphrase;
           users[1].name = user.name;
 
-          user.authenticate(users[1].password).onResolve(function (err, user) {
-            expect(err).to.be.null;
+          return user.authenticate(users[1].password).then(function (user) {
             expect(user).to.be.an('object');
             expect(user.id).to.be.equal(users[1].id);
             expect(user.salt).to.be.a('string');
             expect(user.salt).to.be.equal(users[1].salt);
             expect(user.passphrase).to.be.a('string');
             expect(user.passphrase).to.be.equal(users[1].passphrase);
-
-            done();
           });
         });
       });
 
-      it('should authenticate and update the passphrase', function (done) {
-        User.authenticate(users[0].username, users[0].password).onResolve(function (err, user) {
+      it('should authenticate and update the passphrase', function () {
+        return User.authenticate(users[0].username, users[0].password).then(function (user) {
           var password = faker.internet.password();
 
-          expect(err).to.be.null;
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
           expect(user.salt).to.be.a('string');
@@ -727,8 +704,7 @@ describe('Mongoose plugin: auth', function () {
           expect(user.passphrase).to.be.a('string');
           expect(user.passphrase).to.be.equal(users[0].passphrase);
 
-          user.setPassphrase(password).onResolve(function (err, user) {
-            expect(err).to.be.null;
+          return user.setPassphrase(password).then(function (user) {
             expect(user).to.be.an('object');
             expect(user.id).to.be.equal(users[0].id);
             expect(user.salt).to.be.a('string');
@@ -740,17 +716,14 @@ describe('Mongoose plugin: auth', function () {
             users[0].id = user.id;
             users[0].salt = user.salt;
             users[0].passphrase = user.passphrase;
-
-            done();
           });
         });
       });
 
-      it('should authenticate and update the passphrase with extra fields populated', function (done) {
-        User.authenticate(users[0].username, users[0].password).onResolve(function (err, user) {
+      it('should authenticate and update the passphrase with extra fields populated', function () {
+        return User.authenticate(users[0].username, users[0].password).then(function (user) {
           var password = faker.internet.password();
 
-          expect(err).to.be.null;
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
           expect(user.salt).to.be.a('string');
@@ -758,8 +731,7 @@ describe('Mongoose plugin: auth', function () {
           expect(user.passphrase).to.be.a('string');
           expect(user.passphrase).to.be.equal(users[0].passphrase);
 
-          user.setPassphrase(password, {name: faker.name.findName()}).onResolve(function (err, user) {
-            expect(err).to.be.null;
+          return user.setPassphrase(password, {name: faker.name.findName()}).then(function (user) {
             expect(user).to.be.an('object');
             expect(user.id).to.be.equal(users[0].id);
             expect(user.salt).to.be.a('string');
@@ -773,8 +745,6 @@ describe('Mongoose plugin: auth', function () {
             users[0].salt = user.salt;
             users[0].passphrase = user.passphrase;
             users[0].name = user.name;
-
-            done();
           });
         });
       });
@@ -799,40 +769,34 @@ describe('Mongoose plugin: auth', function () {
 
         User = model('User', schema);
 
-        User.collection.remove(function () {
-          done();
-        });
+        User.collection.remove(done);
       });
 
-      it('should not register a new user without `passphrase` specified', function (done) {
-        User.register(undefined).onResolve(function (err, user) {
+      it('should not register a new user without `passphrase` specified', function () {
+        return User.register(undefined).then(function () {
+          // Shouldn't get here
+          throw new Error('Test failed');
+        }).catch(function (err) {
           expect(err).not.to.be.null;
           expect(err.errors).to.have.all.keys('salt', 'passphrase');
           expect(err.errors.salt).to.be.an('object');
           expect(err.errors.passphrase).to.be.an('object');
-          expect(user).to.be.undefined;
-
-          done();
         });
       });
 
-      it('should register a new user', function (done) {
-        User.register(users[0].password).onResolve(function (err, user) {
-          expect(err).to.be.null;
+      it('should register a new user', function () {
+        return User.register(users[0].password).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.defined;
           expect(user.salt).to.be.a('string');
           expect(user.passphrase).to.be.a('string');
 
           users[0].id = user.id;
-
-          done();
         });
       });
 
-      it('should register a new user with extra fields populated', function (done) {
-        User.register(users[1].password, {name: users[1].name}).onResolve(function (err, user) {
-          expect(err).to.be.null;
+      it('should register a new user with extra fields populated', function () {
+        return User.register(users[1].password, {name: users[1].name}).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.defined;
           expect(user.name).to.be.equal(users[1].name);
@@ -840,20 +804,15 @@ describe('Mongoose plugin: auth', function () {
           expect(user.passphrase).to.be.a('string');
 
           users[1].id = user.id;
-
-          done();
         });
       });
 
-      it('should authenticate a user', function (done) {
-        User.authenticate(users[0].id, users[0].password).onResolve(function (err, user) {
-          expect(err).to.be.null;
+      it('should authenticate a user', function () {
+        return User.authenticate(users[0].id, users[0].password).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
           expect(user.salt).to.be.a('string');
           expect(user.passphrase).to.be.a('string');
-
-          done();
         });
       });
     });
