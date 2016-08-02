@@ -15,7 +15,7 @@
     "gulp-if": "^2.0.0",
     "gulp-jsdoc-to-markdown": "^1.2.2",
     "gulp-jshint": "^2.0.0",
-    "gulp-mocha": "^2.2.0",
+    "gulp-mocha": "^3.0.0",
     "gulp-todo": "^4.1.0",
     "gulp-util": "^3.0.7",
     "jshint": "^2.9.2",
