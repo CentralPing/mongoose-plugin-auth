@@ -156,8 +156,8 @@ The `authenticate` method is a function to validate the passphrase for a user.
 
 **Example**  
 ```js
-user.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
-user.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+user.authenticate('my secret passphrase', function(err, user) { ... });
+user.authenticate('my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
   ```
 
 ## Examples

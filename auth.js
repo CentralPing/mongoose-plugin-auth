@@ -348,8 +348,8 @@ MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ..
 
    * @example
   ```js
-user.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
-user.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+user.authenticate('my secret passphrase', function(err, user) { ... });
+user.authenticate('my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
   ```
   */
   schema.method('authenticate', function authenticate(passphrase, cb) {
