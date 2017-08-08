@@ -147,14 +147,14 @@ function authPlugin(schema, options) {
 
    * @example
   ```js
-MyUserModel.register('tom', 'my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
-MyUserModel.register('tom', 'my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
-MyUserModel.register('tom', 'my secret passphrase', function(err, user) { ... });
-MyUserModel.register('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
-MyUserModel.register('my secret passphrase', {email: tom@jerry.com}, function(err, user) { ... }); // Uses `_id` for the username
-MyUserModel.register('my secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
-MyUserModel.register('my secret passphrase', function(err, user) { ... }); // Uses `_id` for the username
-MyUserModel.register('my secret passphrase').then(function(user) { ... }, function(err) {...});; // Uses promise and `_id` for the username
+MyUserModel.register('tom', 'my secret passphrase', { email: tom@jerry.com }, function(err, user) { ..});
+MyUserModel.register('tom', 'my secret passphrase', { email: tom@jerry.com }).then(function(user) {...}).catch(function(err) {...}); // Uses promise
+MyUserModel.register('tom', 'my secret passphrase', function(err, user) {...});
+MyUserModel.register('tom', 'my secret passphrase').then(function(user) {...}).catch(function(err) {...}); // Uses promise
+MyUserModel.register('my secret passphrase', { email: tom@jerry.com }, function(err, user) {...}); // Uses `_id` for the username
+MyUserModel.register('my secret passphrase', { email: tom@jerry.com }).then(function(user) {...}).then(function(err) {...}); // Uses promise and `_id` for the username
+MyUserModel.register('my secret passphrase', function(err, user) {...}); // Uses `_id` for the username
+MyUserModel.register('my secret passphrase').then(function(user) {...}).then(function(err) {...}); // Uses promise and `_id` for the username
   ```
   */
   schema.static('register', function register(username, passphrase, extra, cb) {
@@ -221,10 +221,10 @@ MyUserModel.register('my secret passphrase').then(function(user) { ... }, functi
 
    * @example
   ```js
-MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
-MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
-MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', function(err, user) { ... });
-MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', { email: tom@jerry.com }, function(err, user) {...});
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', { email: tom@jerry.com }).then(function(user) {...}).then(function(err) {...}); // Uses promise
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase', function(err, user) {...});
+MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphrase').then(function(user) {...}).then(function(err) {...}); // Uses promise
   ```
   */
   schema.static('setPassphrase', function setPassphrase(username, passphrase, newPassphrase, extra, cb) {
@@ -254,10 +254,10 @@ MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphra
 
    * @example
   ```js
-user.setPassphrase('my new secret passphrase', {email: tom@jerry.com}, function(err, user) { ... });
-user.setPassphrase('my new secret passphrase', {email: tom@jerry.com}).then(function(user) { ... }, function(err) {...}); // Uses promise
-user.setPassphrase('my new secret passphrase', function(err, user) { ... });
-user.setPassphrase('my new secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+user.setPassphrase('my new secret passphrase', { email: tom@jerry.com }, function(err, user) {...});
+user.setPassphrase('my new secret passphrase', { email: tom@jerry.com }).then(function(user) {...}).then(function(err) {...}); // Uses promise
+user.setPassphrase('my new secret passphrase', function(err, user) {...});
+user.setPassphrase('my new secret passphrase').then(function(user) {...}).then(function(err) {...}); // Uses promise
   ```
   */
   schema.method('setPassphrase', function setPassphrase(passphrase, extra, cb) {
@@ -288,8 +288,8 @@ user.setPassphrase('my new secret passphrase').then(function(user) { ... }, func
 
    * @example
   ```js
-MyUserModel.authenticate('tom', 'my secret passphrase', function(err, user) { ... });
-MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+MyUserModel.authenticate('tom', 'my secret passphrase', function(err, user) {...});
+MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) {...}).then(function(err) {...}); // Uses promise
   ```
   */
   schema.static('authenticate', function authenticate(username, passphrase, cb) {
@@ -342,8 +342,8 @@ MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ..
 
    * @example
   ```js
-user.authenticate('my secret passphrase', function(err, user) { ... });
-user.authenticate('my secret passphrase').then(function(user) { ... }, function(err) {...}); // Uses promise
+user.authenticate('my secret passphrase', function(err, user) {...});
+user.authenticate('my secret passphrase').then(function(user) {...}).then(function(err) {...}); // Uses promise
   ```
   */
   schema.method('authenticate', function authenticate(passphrase, cb) {
