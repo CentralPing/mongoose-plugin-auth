@@ -3,6 +3,8 @@
 const crypto = require('crypto');
 const _ = require('lodash');
 
+const nodeVersion = Number(process.version.replace(/^v(\d{1,})\..+$/, '$1'));
+
 /**
  * @module mongoose-plugin-auth
  * @example
@@ -49,6 +51,7 @@ function authPlugin(schema, options) {
    * @param {number} [options.hash.iterations=25000] - number of iterations for generating the hash.
    * @param {number} [options.hash.keylen.type=512] - the string length of the generated hash.
    * @param {string} [options.hash.encoding=hex] - the encoding algorithm to use for the hash.
+   * @param {string} [options.hash.digest=sha512] - the HMAC digest algorithm to use for the hash. (Node v8+)
 
    * @param {object} [options.Error=Error] - Error object to use for reporting errors. *Must be of the type Error or inherites from it*
    * @param {string} [options.select] - Mongoose field selection to use for authenticate method/static.
@@ -87,7 +90,8 @@ function authPlugin(schema, options) {
     hash: {
       iterations: 25000,
       keylen: 512,
-      encoding: 'hex'
+      encoding: 'hex',
+      digest: 'sha512'
     },
     Error: Error,
     select: undefined,
@@ -374,11 +378,17 @@ user.authenticate('my secret passphrase').then(function(user) {...}).then(functi
 
 function pbkdf2(passphrase, salt, options) {
   return new Promise(function promisfy(resolve, reject) {
+    const args = [passphrase, salt, options.hash.iterations, options.hash.keylen];
+
+    if (nodeVersion >= 8) {
+      args.push(options.hash.digest);
+    }
+
     // async method
-    crypto.pbkdf2(passphrase, salt, options.hash.iterations, options.hash.keylen, function createRawHash(err, hashRaw) {
+    crypto.pbkdf2.apply(crypto, args.concat([function createRawHash(err, hashRaw) {
       if (err) { return reject(err); }
 
       resolve(new Buffer(hashRaw, 'binary').toString(options.hash.encoding));
-    });
+    }]));
   });
 }
