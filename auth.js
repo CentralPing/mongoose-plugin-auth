@@ -1,20 +1,21 @@
 'use strict';
-/* jshint node: true, esnext: true */
 
-var crypto = require('crypto');
-var _ = require('lodash');
+const crypto = require('crypto');
+const _ = require('lodash');
 
 /**
  * @module mongoose-plugin-auth
  * @example
 ```js
-var authPlugin = require('mongoose-plugin-auth');
-var schema = Schema({...});
+const authPlugin = require('mongoose-plugin-auth');
+const schema = Schema({...});
 schema.plugin(authPlugin[, OPTIONS]);
 ```
 */
 
-module.exports = function authPlugin(schema, options) {
+module.exports = authPlugin;
+
+function authPlugin(schema, options) {
   /**
    * @param {object} [options]
 
@@ -49,9 +50,9 @@ module.exports = function authPlugin(schema, options) {
    * @param {number} [options.hash.keylen.type=512] - the string length of the generated hash.
    * @param {string} [options.hash.encoding=hex] - the encoding algorithm to use for the hash.
 
-   * @param {object} [Error=Error] - Error object to use for reporting errors. *Must be of the type Error or inherites from it*
-   * @param {string} [select] - Mongoose field selection to use for authenticate method/static.
-   * @param {string} [populate] - Mongoose populate selection to use for authenticate method/static.
+   * @param {object} [options.Error=Error] - Error object to use for reporting errors. *Must be of the type Error or inherites from it*
+   * @param {string} [options.select] - Mongoose field selection to use for authenticate method/static.
+   * @param {string} [options.populate] - Mongoose populate selection to use for authenticate method/static.
   */
   options = _.merge({
     username: {
@@ -106,17 +107,16 @@ module.exports = function authPlugin(schema, options) {
   }
 
   schema.pre('validate', true, function encryptPassphrase(next, done) {
-    var user = this;
-    var passphrase;
-
     // Run in parallel
     next();
+
+    const user = this;
 
     if (!user.isNew && !user.isModified(options.passphrase.path)) {
       return done();
     }
 
-    passphrase = user.get(options.passphrase.path);
+    const passphrase = user.get(options.passphrase.path);
 
     if (passphrase === undefined) {
       return done();
@@ -125,16 +125,14 @@ module.exports = function authPlugin(schema, options) {
     crypto.randomBytes(options.salt.len, function createSalt(err, buf) {
       if (err) { return done(err); }
 
-      var salt = buf.toString(options.hash.encoding);
+      const salt = buf.toString(options.hash.encoding);
 
-      pbkdf2(passphrase, salt, options, function createHash(err, hash) {
-        if (err) { return done(err); }
-
+      pbkdf2(passphrase, salt, options).then(function createHash(hash) {
         user.set(options.passphrase.path, hash);
         user.set(options.salt.path, salt);
 
         done();
-      });
+      }).catch(done);
     });
   });
 
@@ -160,8 +158,8 @@ MyUserModel.register('my secret passphrase').then(function(user) { ... }, functi
   ```
   */
   schema.static('register', function register(username, passphrase, extra, cb) {
-    var User = this;
-    var user = new User();
+    const User = this;
+    const user = new User();
 
     // Arity check
     if (arguments.length === 1) {
@@ -169,24 +167,21 @@ MyUserModel.register('my secret passphrase').then(function(user) { ... }, functi
       // Used if username field is autopopulated (e.g. `_id`)
       passphrase = username;
       username = undefined;
-    }
-    else if (arguments.length === 2) {
+    } else if (arguments.length === 2) {
       if (_.isFunction(passphrase)) {
         // User.register(passphrase, cb)
         // Used if username field is autopopulated (e.g. `_id`)
         cb = passphrase;
         passphrase = username;
         username = undefined;
-      }
-      else if (_.isPlainObject(passphrase)) {
+      } else if (_.isPlainObject(passphrase)) {
         // User.register(passphrase, extra)
         // Used if username field is autopopulated (e.g. `_id`)
         extra = passphrase;
         passphrase = username;
         username = undefined;
       }
-    }
-    else if (arguments.length === 3 && _.isFunction(extra)) {
+    } else if (arguments.length === 3 && _.isFunction(extra)) {
       cb = extra;
 
       if (_.isPlainObject(passphrase)) {
@@ -194,8 +189,7 @@ MyUserModel.register('my secret passphrase').then(function(user) { ... }, functi
         extra = passphrase;
         passphrase = username;
         username = undefined;
-      }
-      else {
+      } else {
         // User.register(username, passphrase, cb)
         extra = undefined;
       }
@@ -245,6 +239,7 @@ MyUserModel.setPassphrase('tom', 'my secret passphrase', 'my new secret passphra
       return user.setPassphrase(newPassphrase, extra, cb);
     }).catch(function authenticationError(err) {
       if (cb) { return cb(err); }
+
       throw err;
     });
   });
@@ -298,29 +293,27 @@ MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ..
   ```
   */
   schema.static('authenticate', function authenticate(username, passphrase, cb) {
-    var User = this;
-    var promise = new User.base.Promise.ES6(function (resolve, reject) {
-      var query = User.findOne();
+    if (username === undefined || username === null) {
+      let err = new options.Error(options.username.missingError);
 
-      if (username === undefined || username === null) {
-        return reject(options.Error(options.username.missingError));
-      }
+      return cb ? cb(err) : Promise.reject(err);
+    }
 
-      query.where(options.username.path, username);
-      query.select([options.passphrase.path, options.salt.path].join(' '));
+    const User = this;
+    const query = User.findOne();
 
-      if (options.select) {
-        query.select(options.select);
-      }
+    query.where(options.username.path, username);
+    query.select([options.passphrase.path, options.salt.path].join(' '));
 
-      if (options.populate) {
-        query.populate(options.populate);
-      }
+    if (options.select) {
+      query.select(options.select);
+    }
 
-      resolve(query.exec());
-    });
+    if (options.populate) {
+      query.populate(options.populate);
+    }
 
-    return promise.then(function authenticated(user) {
+    return query.exec().then(function authenticated(user) {
       if (user === null) {
         throw new options.Error(options.username.incorrectError);
       }
@@ -335,6 +328,7 @@ MyUserModel.authenticate('tom', 'my secret passphrase').then(function(user) { ..
       }
 
       if (cb) { return cb(err); }
+
       throw err;
     });
   });
@@ -353,41 +347,38 @@ user.authenticate('my secret passphrase').then(function(user) { ... }, function(
   ```
   */
   schema.method('authenticate', function authenticate(passphrase, cb) {
-    var user = this;
+    if (passphrase === undefined || passphrase === null) {
+      let err = new options.Error(options.passphrase.missingError);
 
-    var promise = new user.constructor.base.Promise.ES6(function (resolve, reject) {
-      if (passphrase === undefined || passphrase === null) {
-        reject(new options.Error(options.passphrase.missingError));
+      return cb ? cb(err) : Promise.reject(err);
+    }
+
+    const user = this;
+
+    return pbkdf2(passphrase, user.get(options.salt.path), options).then(function checkHash(hash) {
+      if (hash !== user.get(options.passphrase.path)) {
+        throw new options.Error(options.passphrase.incorrectError);
       }
-      else {
-        pbkdf2(passphrase, user.get(options.salt.path), options, function checkHash(err, hash) {
-          if (err) { return reject(err); }
 
-          if (hash !== user.get(options.passphrase.path)) {
-            return reject(new options.Error(options.passphrase.incorrectError));
-          }
-
-          resolve(user);
-        });
-      }
-    });
-
-    return promise.then(function authenticated(user) {
+      // authenticated
       if (cb) { return cb(null, user); }
+
       return user;
     }).catch(function authenticationError(err) {
       if (cb) { return cb(err); }
+
       throw err;
     });
   });
-};
+}
 
-function pbkdf2(passphrase, salt, options, cb) {
-  // async method
-  return crypto.pbkdf2(passphrase, salt, options.hash.iterations, options.hash.keylen, function createRawHash(err, hashRaw) {
-    if (err) { return cb(err); }
+function pbkdf2(passphrase, salt, options) {
+  return new Promise(function promisfy(resolve, reject) {
+    // async method
+    crypto.pbkdf2(passphrase, salt, options.hash.iterations, options.hash.keylen, function createRawHash(err, hashRaw) {
+      if (err) { return reject(err); }
 
-    // crypto returns the error param as `undefined` but Mongoose and Express use `null`
-    return cb(null, new Buffer(hashRaw, 'binary').toString(options.hash.encoding));
+      resolve(new Buffer(hashRaw, 'binary').toString(options.hash.encoding));
+    });
   });
 }
