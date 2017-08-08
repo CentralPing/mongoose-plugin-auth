@@ -63,17 +63,17 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should append `passphrase`', function () {
-      expect(schema.path('passphrase')).to.be.defined;
+      expect(schema.path('passphrase')).not.to.be.undefined;
       expect(schema.path('passphrase').isRequired).to.be.true;
     });
 
     it('should append `salt`', function () {
-      expect(schema.path('salt')).to.be.defined;
+      expect(schema.path('salt')).not.to.be.undefined;
       expect(schema.path('salt').isRequired).to.be.true;
     });
 
     it('should append `username`', function () {
-      expect(schema.path('username')).to.be.defined;
+      expect(schema.path('username')).not.to.be.undefined;
       expect(schema.path('username').isRequired).to.be.true;
     });
   });
@@ -108,9 +108,9 @@ describe('Mongoose plugin: auth', function () {
         passphrase: { path: 'h' }
       });
 
-      expect(schema.path('u')).to.be.defined;
-      expect(schema.path('s')).to.be.defined;
-      expect(schema.path('h')).to.be.defined;
+      expect(schema.path('u')).not.to.be.undefined;
+      expect(schema.path('s')).not.to.be.undefined;
+      expect(schema.path('h')).not.to.be.undefined;
     });
 
     // TODO: test all options
@@ -416,7 +416,7 @@ describe('Mongoose plugin: auth', function () {
       User.register(users[0].password, function (err, user) {
         expect(err).to.be.null;
         expect(user).to.be.an('object');
-        expect(user.id).to.be.defined;
+        expect(user.id).not.to.be.undefined;
         expect(user.salt).to.be.a('string');
         expect(user.passphrase).to.be.a('string');
 
@@ -430,7 +430,7 @@ describe('Mongoose plugin: auth', function () {
       User.register(users[1].password, { name: users[1].name }, function (err, user) {
         expect(err).to.be.null;
         expect(user).to.be.an('object');
-        expect(user.id).to.be.defined;
+        expect(user.id).not.to.be.undefined;
         expect(user.name).to.be.equal(users[1].name);
         expect(user.salt).to.be.a('string');
         expect(user.passphrase).to.be.a('string');
@@ -779,7 +779,7 @@ describe('Mongoose plugin: auth', function () {
       it('should register a new user', function () {
         return User.register(users[0].password).then(function (user) {
           expect(user).to.be.an('object');
-          expect(user.id).to.be.defined;
+          expect(user.id).not.to.be.undefined;
           expect(user.salt).to.be.a('string');
           expect(user.passphrase).to.be.a('string');
 
@@ -790,7 +790,7 @@ describe('Mongoose plugin: auth', function () {
       it('should register a new user with extra fields populated', function () {
         return User.register(users[1].password, { name: users[1].name }).then(function (user) {
           expect(user).to.be.an('object');
-          expect(user.id).to.be.defined;
+          expect(user.id).not.to.be.undefined;
           expect(user.name).to.be.equal(users[1].name);
           expect(user.salt).to.be.a('string');
           expect(user.passphrase).to.be.a('string');
