@@ -51,7 +51,7 @@ schema.plugin(authPlugin[, OPTIONS]);
 | [options.salt.len] | <code>number</code> | <code>32</code> | the string length to use for the salt. |
 | [options.hash] | <code>object</code> |  | options for configuring the hash using the [crypto](https://nodejs.org/api/crypto.html) module. |
 | [options.hash.iterations] | <code>number</code> | <code>25000</code> | number of iterations for generating the hash. |
-| [options.hash.keylen.type] | <code>number</code> | <code>512</code> | the string length of the generated hash. |
+| [options.hash.keylen] | <code>number</code> | <code>512</code> | the string length of the generated hash. |
 | [options.hash.encoding] | <code>string</code> | <code>&quot;hex&quot;</code> | the encoding algorithm to use for the hash. |
 | [options.hash.digest] | <code>string</code> | <code>&quot;sha512&quot;</code> | the HMAC digest algorithm to use for the hash. (Node v8+) |
 | [options.Error] | <code>object</code> | <code>Error</code> | Error object to use for reporting errors. *Must be of the type Error or inherites from it* |

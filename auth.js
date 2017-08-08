@@ -49,7 +49,7 @@ function authPlugin(schema, options) {
 
    * @param {object} [options.hash] - options for configuring the hash using the [crypto](https://nodejs.org/api/crypto.html) module.
    * @param {number} [options.hash.iterations=25000] - number of iterations for generating the hash.
-   * @param {number} [options.hash.keylen.type=512] - the string length of the generated hash.
+   * @param {number} [options.hash.keylen=512] - the string length of the generated hash.
    * @param {string} [options.hash.encoding=hex] - the encoding algorithm to use for the hash.
    * @param {string} [options.hash.digest=sha512] - the HMAC digest algorithm to use for the hash. (Node v8+)
 
