@@ -1,4 +1,4 @@
 ### TODOs
 | Filename | line # | TODO
 |:------|:------:|:------
-| auth.spec.js | 112 | test all options
+| auth.spec.js | 116 | test all options

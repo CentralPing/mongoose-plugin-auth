@@ -1,24 +1,22 @@
 'use strict';
-/* jshint node: true */
 
-var fs = require('fs');
-var args = require('yargs').argv;
-var gulp = require('gulp');
-var gulpIf = require('gulp-if');
-var debug = require('gulp-debug');
-var jshint = require('gulp-jshint');
-var todo = require('gulp-todo');
-var mocha = require('gulp-mocha');
-var gutil = require('gulp-util');
-var concat = require('gulp-concat');
-var jsdoc2md = require('gulp-jsdoc-to-markdown');
+const fs = require('fs');
+const args = require('yargs').argv;
+const gulp = require('gulp');
+const gulpIf = require('gulp-if');
+const debug = require('gulp-debug');
+const jshint = require('gulp-jshint');
+const todo = require('gulp-todo');
+const gulpMocha = require('gulp-mocha');
+const gutil = require('gulp-util');
+const concat = require('gulp-concat');
+const jsdoc2md = require('gulp-jsdoc-to-markdown');
 
-var isDebug = !!args.debug;
-var isVerbose = !!args.verbose;
-var isStackTrace = !!args.stackTrace;
-var cliSrc = args.files;
+const isDebug = !!args.debug;
+const isVerbose = !!args.verbose;
+const cliSrc = args.files;
 
-var config = {
+const config = {
   paths: {
     scripts: ['./**/*.js', '!./**/*.spec.js', '!./node_modules/**/*.js'],
     specs: ['./**/*.spec.js', '!./node_modules/**/*.js'],
@@ -33,7 +31,7 @@ gulp.task('default', function () {
 gulp.task('lint', function () {
   // Check for `test` to ensure both the specified specs
   // and corresponding scripts are linted
-  var glob = cliSrc ?
+  const glob = cliSrc ?
     cliSrc.replace(/\.spec\.js$/, '?(.spec).js') :
     config.paths.all;
 
@@ -55,7 +53,7 @@ gulp.task('test', ['lint'], function (done) {
 gulp.task('watch', ['test'], function (done) {
   // Check to ensure both the specified specs
   // and corresponding scripts are watched
-  var glob = cliSrc ?
+  const glob = cliSrc ?
     cliSrc.replace(/\.spec\.js$/, '?(.spec).js') :
     config.paths.all;
 
@@ -64,33 +62,33 @@ gulp.task('watch', ['test'], function (done) {
 
 gulp.task('todo', function (done) {
   return gulp.src(config.paths.all)
-    .pipe(todo({
-      //fileName: 'todo.md',
-      verbose: isVerbose,
-      //newLine: gutil.linefeed,
-      /*
-      transformComment: function (file, line, text) {
-          return ['| ' + file + ' | ' + line + ' | ' + text];
-      },
-      transformHeader: function (kind) {
-          return ['### ' + kind + 's',
-              '| Filename | line # | todo',
-              '|:------|:------:|:------'
-          ];
-      }
-      */
-    }))
-    .pipe(gulp.dest('./'));
+  .pipe(todo({
+    //fileName: 'todo.md',
+    verbose: isVerbose,
+    //newLine: gutil.linefeed,
+    /*
+    transformComment: function (file, line, text) {
+        return ['| ' + file + ' | ' + line + ' | ' + text];
+    },
+    transformHeader: function (kind) {
+        return ['### ' + kind + 's',
+            '| Filename | line # | todo',
+            '|:------|:------:|:------'
+        ];
+    }
+    */
+  }))
+  .pipe(gulp.dest('./'));
 });
 
 gulp.task('docs', function() {
   return gulp.src(config.paths.all)
-    .pipe(concat('README.md'))
-    .pipe(jsdoc2md({template: fs.readFileSync('./readme.hbs', 'utf8')}))
-    .on('error', function(err){
-      gutil.log('jsdoc2md failed:', err.message);
-    })
-    .pipe(gulp.dest('.'));
+  .pipe(concat('README.md'))
+  .pipe(jsdoc2md({ template: fs.readFileSync('./readme.hbs', 'utf8') }))
+  .on('error', function (err) {
+    gutil.log('jsdoc2md failed:', err.message);
+  })
+  .pipe(gulp.dest('.'));
 });
 
 function testRunner(src) {
@@ -98,24 +96,24 @@ function testRunner(src) {
     src = [].concat([].slice.call(arguments));
   }
 
-  return gulp.src(src, {read: false})
-    .pipe(gulpIf(isDebug, debug({title: 'test:'})))
-    .pipe(mocha({
-      //ui: 'bdd',
-      //reporter: 'spec',
-      //globals: [],
-      //timeout: 2000,
-      //bail: false,
-      //ignoreLeaks: false,
-      //grep: '',
-      //require: []
-    }));
+  return gulp.src(src, { read: false })
+  .pipe(gulpIf(isDebug, debug({ title: 'test:' })))
+  .pipe(gulpMocha({
+    //ui: 'bdd',
+    //reporter: 'spec',
+    //globals: [],
+    //timeout: 2000,
+    //bail: false,
+    //ignoreLeaks: false,
+    //grep: '',
+    //require: []
+  }));
 }
 
 function lint(src) {
   return gulp.src(src)
-    .pipe(gulpIf(isDebug, debug({title: 'lint:'})))
-    .pipe(jshint())
-    .pipe(jshint.reporter('default', {verbose: isVerbose}))
-    .pipe(jshint.reporter('fail'));
+  .pipe(gulpIf(isDebug, debug({ title: 'lint:' })))
+  .pipe(jshint())
+  .pipe(jshint.reporter('default', { verbose: isVerbose }))
+  .pipe(jshint.reporter('fail'));
 }

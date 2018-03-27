@@ -1,26 +1,26 @@
 'use strict';
-/* jshint node: true, mocha: true, expr: true */
 
-var expect = require('chai').expect;
-var mongoose = require('mongoose');
-var faker = require('faker');
-var auth = require('./auth');
+const expect = require('chai').expect;
+const mongoose = require('mongoose');
+const faker = require('faker');
 
-var connectionString = process.env.MONGO_URL || 'mongodb://localhost/unit_test';
+const auth = require('./auth');
 
-var Schema = mongoose.Schema;
-var connection;
+const connectionString = process.env.MONGO_URL || 'mongodb://localhost/unit_test';
+const Schema = mongoose.Schema;
 
 // Mongoose uses internal caching for models.
 // While {cache: false} works with most models, models using references
 // use the internal model cache for the reference.
-// This removes the mongoose entirely from node's cache
+// This removes the mongoose cache entirely from node's cache
 delete require.cache.mongoose;
 
 // Set Mongoose internal promise object to be the native Promise object
 mongoose.Promise = global.Promise;
 
 describe('Mongoose plugin: auth', function () {
+  let connection;
+
   // Prevent test timeout on travis
   this.timeout(5000);
 
@@ -36,9 +36,9 @@ describe('Mongoose plugin: auth', function () {
   });
 
   describe('with schema', function () {
-    var schema;
+    let schema;
 
-    before(function() {
+    before(function () {
       schema = userSchema();
       schema.plugin(auth);
     });
@@ -63,30 +63,29 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should append `passphrase`', function () {
-      expect(schema.path('passphrase')).to.be.defined;
+      expect(schema.path('passphrase')).not.to.be.undefined;
       expect(schema.path('passphrase').isRequired).to.be.true;
     });
 
     it('should append `salt`', function () {
-      expect(schema.path('salt')).to.be.defined;
+      expect(schema.path('salt')).not.to.be.undefined;
       expect(schema.path('salt').isRequired).to.be.true;
     });
 
     it('should append `username`', function () {
-      expect(schema.path('username')).to.be.defined;
+      expect(schema.path('username')).not.to.be.undefined;
       expect(schema.path('username').isRequired).to.be.true;
     });
   });
 
   describe('with model instance', function () {
-    var user;
+    let user;
 
-    before(function() {
-      var User;
-      var schema = userSchema();
+    before(function () {
+      const schema = userSchema();
       schema.plugin(auth);
 
-      User = model('User', schema);
+      const User = model(connection, 'User', schema);
       user = new User();
     });
 
@@ -101,34 +100,31 @@ describe('Mongoose plugin: auth', function () {
 
   describe('with plugin options', function () {
     it('should allow custom paths', function () {
-      var schema = userSchema();
+      const schema = userSchema();
 
       schema.plugin(auth, {
-        username: {path: 'u'},
-        salt: {path: 's'},
-        passphrase: {path: 'h'}
+        username: { path: 'u' },
+        salt: { path: 's' },
+        passphrase: { path: 'h' }
       });
 
-      expect(schema.path('u')).to.be.defined;
-      expect(schema.path('s')).to.be.defined;
-      expect(schema.path('h')).to.be.defined;
+      expect(schema.path('u')).not.to.be.undefined;
+      expect(schema.path('s')).not.to.be.undefined;
+      expect(schema.path('h')).not.to.be.undefined;
     });
 
     // TODO: test all options
   });
 
   describe('with user registration and authentication', function () {
-    var User;
-    var users;
+    let User;
+    let users;
 
     before(function (done) {
-      var schema = userSchema();
+      const schema = userSchema();
       schema.plugin(auth);
 
-      /* jshint -W064 */
-      // https://github.com/jshint/jshint/issues/1987
       users = Array(3).join('.').split('.').map(function () {
-      /* jshint +W064 */
         return {
           name: faker.name.findName(),
           username: faker.internet.userName(),
@@ -136,7 +132,7 @@ describe('Mongoose plugin: auth', function () {
         };
       });
 
-      User = model('User', schema);
+      User = model(connection, 'User', schema);
 
       User.collection.remove(done);
     });
@@ -183,7 +179,7 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should register a new user with extra fields populated', function (done) {
-      User.register(users[1].username, users[1].password, {name: users[1].name}, function (err, user) {
+      User.register(users[1].username, users[1].password, { name: users[1].name }, function (err, user) {
         expect(err).to.be.null;
         expect(user).to.be.an('object');
         expect(user.username).to.be.equal(users[1].username);
@@ -255,7 +251,7 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should update the passphrase and authenticate', function (done) {
-      var password = faker.internet.password();
+      const password = faker.internet.password();
 
       User.setPassphrase(users[1].username, users[1].password, password, function (err, user) {
         expect(err).to.be.null;
@@ -286,9 +282,9 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should update the passphrase and authenticate with extra fields populated', function (done) {
-      var password = faker.internet.password();
+      const password = faker.internet.password();
 
-      User.setPassphrase(users[1].username, users[1].password, password, {name: faker.name.findName()}, function (err, user) {
+      User.setPassphrase(users[1].username, users[1].password, password, { name: faker.name.findName() }, function (err, user) {
         expect(err).to.be.null;
         expect(user).to.be.an('object');
         expect(user.id).to.be.equal(users[1].id);
@@ -320,7 +316,7 @@ describe('Mongoose plugin: auth', function () {
 
     it('should authenticate and update the passphrase', function (done) {
       User.authenticate(users[0].username, users[0].password, function (err, user) {
-        var password = faker.internet.password();
+        const password = faker.internet.password();
 
         expect(err).to.be.null;
         expect(user).to.be.an('object');
@@ -351,7 +347,7 @@ describe('Mongoose plugin: auth', function () {
 
     it('should authenticate and update the passphrase with extra fields populated', function (done) {
       User.authenticate(users[0].username, users[0].password, function (err, user) {
-        var password = faker.internet.password();
+        const password = faker.internet.password();
 
         expect(err).to.be.null;
         expect(user).to.be.an('object');
@@ -361,7 +357,7 @@ describe('Mongoose plugin: auth', function () {
         expect(user.passphrase).to.be.a('string');
         expect(user.passphrase).to.be.equal(users[0].passphrase);
 
-        user.setPassphrase(password, {name: faker.name.findName()}, function (err, user) {
+        user.setPassphrase(password, { name: faker.name.findName() }, function (err, user) {
           expect(err).to.be.null;
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
@@ -384,11 +380,9 @@ describe('Mongoose plugin: auth', function () {
   });
 
   describe('with user registration with usernamePath set to `_id`', function () {
-    var User;
+    let User;
 
-      /*jshint -W064 */
-    var users = Array(2).join('.').split('.').map(function () {
-      /*jshint +W064 */
+    const users = Array(2).join('.').split('.').map(function () {
       return {
         name: faker.name.findName(),
         password: faker.internet.password()
@@ -396,12 +390,12 @@ describe('Mongoose plugin: auth', function () {
     });
 
     before(function (done) {
-      var schema = userSchema();
+      const schema = userSchema();
       schema.plugin(auth, {
-        username: {path: '_id'}
+        username: { path: '_id' }
       });
 
-      User = model('User', schema);
+      User = model(connection, 'User', schema);
 
       User.collection.remove(done);
     });
@@ -422,7 +416,7 @@ describe('Mongoose plugin: auth', function () {
       User.register(users[0].password, function (err, user) {
         expect(err).to.be.null;
         expect(user).to.be.an('object');
-        expect(user.id).to.be.defined;
+        expect(user.id).not.to.be.undefined;
         expect(user.salt).to.be.a('string');
         expect(user.passphrase).to.be.a('string');
 
@@ -433,10 +427,10 @@ describe('Mongoose plugin: auth', function () {
     });
 
     it('should register a new user with extra fields populated', function (done) {
-      User.register(users[1].password, {name: users[1].name}, function (err, user) {
+      User.register(users[1].password, { name: users[1].name }, function (err, user) {
         expect(err).to.be.null;
         expect(user).to.be.an('object');
-        expect(user.id).to.be.defined;
+        expect(user.id).not.to.be.undefined;
         expect(user.name).to.be.equal(users[1].name);
         expect(user.salt).to.be.a('string');
         expect(user.passphrase).to.be.a('string');
@@ -512,16 +506,14 @@ describe('Mongoose plugin: auth', function () {
 
   describe('with promises', function () {
     describe('with user registration and authentication', function () {
-      var User;
-      var users;
+      let User;
+      let users;
 
       before(function (done) {
-        var schema = userSchema();
+        const schema = userSchema();
         schema.plugin(auth);
 
-        /*jshint -W064 */
         users = Array(3).join('.').split('.').map(function () {
-        /*jshint +W064 */
           return {
             name: faker.name.findName(),
             username: faker.internet.userName(),
@@ -529,7 +521,7 @@ describe('Mongoose plugin: auth', function () {
           };
         });
 
-        User = model('User', schema);
+        User = model(connection, 'User', schema);
 
         User.collection.remove(done);
       });
@@ -572,7 +564,7 @@ describe('Mongoose plugin: auth', function () {
       });
 
       it('should register a new user with extra fields populated', function () {
-        return User.register(users[1].username, users[1].password, {name: users[1].name}).then(function (user) {
+        return User.register(users[1].username, users[1].password, { name: users[1].name }).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.username).to.be.equal(users[1].username);
           expect(user.name).to.be.equal(users[1].name);
@@ -638,7 +630,7 @@ describe('Mongoose plugin: auth', function () {
       });
 
       it('should update the passphrase and authenticate', function () {
-        var password = faker.internet.password();
+        const password = faker.internet.password();
 
         return User.setPassphrase(users[1].username, users[1].password, password).then(function (user) {
           expect(user).to.be.an('object');
@@ -665,9 +657,9 @@ describe('Mongoose plugin: auth', function () {
       });
 
       it('should update the passphrase and authenticate with extra fields populated', function () {
-        var password = faker.internet.password();
+        const password = faker.internet.password();
 
-        return User.setPassphrase(users[1].username, users[1].password, password, {name: faker.name.findName()}).then(function (user) {
+        return User.setPassphrase(users[1].username, users[1].password, password, { name: faker.name.findName() }).then(function (user) {
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[1].id);
           expect(user.salt).to.be.a('string');
@@ -695,7 +687,7 @@ describe('Mongoose plugin: auth', function () {
 
       it('should authenticate and update the passphrase', function () {
         return User.authenticate(users[0].username, users[0].password).then(function (user) {
-          var password = faker.internet.password();
+          const password = faker.internet.password();
 
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
@@ -722,7 +714,7 @@ describe('Mongoose plugin: auth', function () {
 
       it('should authenticate and update the passphrase with extra fields populated', function () {
         return User.authenticate(users[0].username, users[0].password).then(function (user) {
-          var password = faker.internet.password();
+          const password = faker.internet.password();
 
           expect(user).to.be.an('object');
           expect(user.id).to.be.equal(users[0].id);
@@ -731,7 +723,7 @@ describe('Mongoose plugin: auth', function () {
           expect(user.passphrase).to.be.a('string');
           expect(user.passphrase).to.be.equal(users[0].passphrase);
 
-          return user.setPassphrase(password, {name: faker.name.findName()}).then(function (user) {
+          return user.setPassphrase(password, { name: faker.name.findName() }).then(function (user) {
             expect(user).to.be.an('object');
             expect(user.id).to.be.equal(users[0].id);
             expect(user.salt).to.be.a('string');
@@ -751,23 +743,23 @@ describe('Mongoose plugin: auth', function () {
     });
 
     describe('with user registration with usernamePath set to `_id`', function () {
-      var User;
-      /*jshint -W064 */
-      var users = Array(2).join('.').split('.').map(function () {
-      /*jshint +W064 */
-        return {
-          name: faker.name.findName(),
-          password: faker.internet.password()
-        };
-      });
+      let User;
+      let users;
 
       before(function (done) {
-        var schema = userSchema();
+        const schema = userSchema();
         schema.plugin(auth, {
-          username: {path: '_id'}
+          username: { path: '_id' }
         });
 
-        User = model('User', schema);
+        users = Array(2).join('.').split('.').map(function () {
+          return {
+            name: faker.name.findName(),
+            password: faker.internet.password()
+          };
+        });
+
+        User = model(connection, 'User', schema);
 
         User.collection.remove(done);
       });
@@ -787,7 +779,7 @@ describe('Mongoose plugin: auth', function () {
       it('should register a new user', function () {
         return User.register(users[0].password).then(function (user) {
           expect(user).to.be.an('object');
-          expect(user.id).to.be.defined;
+          expect(user.id).not.to.be.undefined;
           expect(user.salt).to.be.a('string');
           expect(user.passphrase).to.be.a('string');
 
@@ -796,9 +788,9 @@ describe('Mongoose plugin: auth', function () {
       });
 
       it('should register a new user with extra fields populated', function () {
-        return User.register(users[1].password, {name: users[1].name}).then(function (user) {
+        return User.register(users[1].password, { name: users[1].name }).then(function (user) {
           expect(user).to.be.an('object');
-          expect(user.id).to.be.defined;
+          expect(user.id).not.to.be.undefined;
           expect(user.name).to.be.equal(users[1].name);
           expect(user.salt).to.be.a('string');
           expect(user.passphrase).to.be.a('string');
@@ -819,15 +811,15 @@ describe('Mongoose plugin: auth', function () {
   });
 });
 
-function model(name, schema) {
-  if (arguments.length === 1) {
+function model(conn, name, schema) {
+  if (arguments.length === 2) {
     schema = name;
     name = 'Model';
   }
 
   // Specifying a collection name allows the model to be overwritten in
   // Mongoose's model cache
-  return connection.model(name, schema, name);
+  return conn.model(name, schema, name);
 }
 
 function userSchema() {

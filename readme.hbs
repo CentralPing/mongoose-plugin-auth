@@ -21,11 +21,11 @@ A [mongoose.js](https://github.com/Automattic/mongoose/) plugin to add authoriza
 
 ### With Defaults
 ```js
-var authPlugin = require('mongoose-plugin-auth');
-var schema = Schema({foo: String});
+const authPlugin = require('mongoose-plugin-auth');
+const schema = Schema({ foo: String });
 schema.plugin(authPlugin);
 
-var Foo = mongoose.model('Foo', schema);
+const Foo = mongoose.model('Foo', schema);
 Foo.register('tom', 'my new passphrase').then(function (user) {
   // user is a new document persisted to the database
 });
@@ -34,20 +34,20 @@ Foo.register('tom', 'my new passphrase').then(function (user) {
 
 Foo.authenticate('tom', 'my new passphrase').then(function (user) {
   // user is the authenticated user document
-}).then(null, function(err) {
+}).catch(function(err) {
   // err will report any authentication errors.
 });
 ```
 
 ### With Options (using `_id` as username)
 ```js
-var authPlugin = require('mongoose-plugin-auth');
-var schema = Schema({foo: String});
+const authPlugin = require('mongoose-plugin-auth');
+const schema = Schema({ foo: String });
 schema.plugin(authPlugin{
-  username: {path: '_id'}
+  username: { path: '_id' }
 });
 
-var Foo = mongoose.model('Foo', schema);
+const Foo = mongoose.model('Foo', schema);
 Foo.register('my new passphrase').then(function (user) {
   // user is a new document persisted to the database
 });
@@ -56,7 +56,7 @@ Foo.register('my new passphrase').then(function (user) {
 
 Foo.authenticate('507f191e810c19729de970fb', 'my new passphrase').then(function (user) {
   // user is the authenticated user document
-}).then(null, function(err) {
+}).catch(function(err) {
   // err will report any authentication errors.
 });
 ```
