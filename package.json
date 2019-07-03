@@ -4,7 +4,8 @@
   "description": "Mongoose.js plugin to add authorization methods to models.",
   "main": "auth.js",
   "dependencies": {
-    "lodash": "^4.11.1"
+    "lodash": "^4.11.1",
+    "snyk": "^1.189.0"
   },
   "devDependencies": {
     "chai": "^4.1.1",
@@ -27,7 +28,8 @@
   },
   "scripts": {
     "test": "gulp test",
-    "prepublish": "gulp todo && gulp docs"
+    "prepublish": "npm run snyk-protect; gulp todo && gulp docs",
+    "snyk-protect": "snyk protect"
   },
   "repository": {
     "type": "git",
@@ -43,5 +45,6 @@
   "bugs": {
     "url": "https://github.com/CentralPing/mongoose-plugin-auth/issues"
   },
-  "homepage": "https://github.com/CentralPing/mongoose-plugin-auth"
+  "homepage": "https://github.com/CentralPing/mongoose-plugin-auth",
+  "snyk": true
 }
