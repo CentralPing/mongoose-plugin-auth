@@ -1,6 +1,7 @@
 mongoose-plugin-auth
 ====================
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/CentralPing/mongoose-plugin-auth.svg)](https://greenkeeper.io/)
 [![Build Status](https://travis-ci.org/CentralPing/mongoose-plugin-auth.svg?branch=master)](https://travis-ci.org/CentralPing/mongoose-plugin-auth)
 [![Code Climate for CentralPing/mongoose-plugin-auth](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth/badges/gpa.svg)](https://codeclimate.com/github/CentralPing/mongoose-plugin-auth)
 [![Dependency Status for CentralPing/mongoose-plugin-auth](https://david-dm.org/CentralPing/mongoose-plugin-auth.svg)](https://david-dm.org/CentralPing/mongoose-plugin-auth)
